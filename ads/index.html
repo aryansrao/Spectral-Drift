@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Ads</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <style>
+        /* Load a readable fallback; 'Geist' will be used if available on the client */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        :root {
+            --bg: #060606;
+            --fg: #e9e9e9
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0
+        }
+
+        body {
+            background:
+                radial-gradient(1200px 600px at 10% 10%, rgba(255, 255, 255, 0.02), transparent 12%),
+                linear-gradient(180deg, #070707 0%, #060606 100%);
+            color: var(--fg);
+            font-family: "Geist", Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .email {
+            font-size: clamp(12px, 2.6vw, 28px);
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-align: center;
+            opacity: 0.98
+        }
+
+        .email a {
+            color: var(--fg);
+            text-decoration: none
+        }
+
+        .email a:focus,
+        .email a:hover {
+            opacity: 0.9
+        }
+
+        .portfolio {
+            font-size: clamp(10px, 1.6vw, 14px);
+            margin-top: 8px;
+            text-align: center;
+            opacity: 0.85
+        }
+
+        .portfolio a {
+            color: #9bdcff;
+            text-decoration: none
+        }
+
+        .portfolio a:focus,
+        .portfolio a:hover {
+            text-decoration: underline;
+            opacity: 1
+        }
+
+        /* Make sure the page is minimal and accessible */
+        @media (prefers-reduced-motion:reduce) {
+            * {
+                animation: none !important;
+                transition: none !important
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container" role="main" aria-label="Advertisement Contact">
+        <div>
+            <p class="email"><a href="mailto:aaryansrao5@gmail.com">aaryansrao5@gmail.com</a></p>
+            <p class="portfolio"><a href="https://aryansrao.leapcell.app" target="_blank"
+                    rel="noopener">aryansrao.leapcell.app</a></p>
+        </div>
+    </main>
+</body>
+
+</html>
