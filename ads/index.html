@@ -1,102 +1,286 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Ads</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <style>
-        /* Load a readable fallback; 'Geist' will be used if available on the client */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advertise — Spectral Drift</title>
+  <meta name="description" content="Place your brand inside Spectral Drift's ghost world. In-game 3D billboard ads that trigger when spirits walk past. Reach real players in a unique browser experience.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://spectraldrift.netlify.app/ads">
+  <meta property="og:title" content="Advertise on Spectral Drift">
+  <meta property="og:description" content="In-world 3D billboard ads inside a multiplayer ghost realm. Spirits walk past — your site opens.">
+  <meta property="og:url" content="https://spectraldrift.netlify.app/ads">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='%23000'/><path fill='%23ff4500' d='m256 60c-88 0-160 66-169 152-32 230-77 268-77 268-14 24 20 27 38 27 34 0 34 39 68 39s34-34 68-34 36 44 70 44 36-44 70-44 34 34 68 34 34-39 68-39c18 0 53-3 38-27 0 0-45-38-77-268-9-86-81-152-165-152z'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#000;--surface:#0a0a0a;--border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
+      --text:#ededed;--muted:rgba(255,255,255,.38);--accent:#ff4500;--gold:#ffcc00;
+      --f-sans:'Geist',sans-serif;--f-mono:'Geist Mono',monospace;
+    }
+    html{scroll-behavior:smooth}
+    body{font-family:var(--f-sans);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
 
-        :root {
-            --bg: #060606;
-            --fg: #e9e9e9
-        }
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;border-bottom:1px solid var(--border);backdrop-filter:blur(20px);background:rgba(0,0,0,.75)}
+    .nav-inner{max-width:1080px;margin:0 auto;padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between}
+    .nav-logo{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:600;letter-spacing:-.02em}
+    .nav-logo svg{width:26px;height:26px;filter:drop-shadow(0 0 6px rgba(255,69,0,.5))}
+    .nav-back{font-size:12px;color:var(--muted);padding:6px 12px;border:1px solid var(--border);border-radius:6px;transition:color .15s,border-color .15s}
+    .nav-back:hover{color:var(--text);border-color:var(--border2)}
 
-        html,
-        body {
-            height: 100%;
-            margin: 0
-        }
+    .hero{padding:130px 24px 80px;text-align:center;position:relative;overflow:hidden}
+    .hero::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:600px;height:300px;background:radial-gradient(ellipse,rgba(255,180,0,.07) 0%,transparent 70%);pointer-events:none}
+    .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+    .wrap-sm{max-width:680px;margin:0 auto;padding:0 24px}
+    .badge{display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border:1px solid rgba(255,180,0,.2);border-radius:99px;background:rgba(255,180,0,.06);font-size:10px;font-weight:500;color:rgba(255,200,80,.8);letter-spacing:.1em;text-transform:uppercase;margin-bottom:28px;font-family:var(--f-mono)}
+    .badge-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);animation:blink 1.6s infinite}
+    @keyframes blink{0%,100%{opacity:.4}50%{opacity:1}}
+    h1{font-size:clamp(40px,7vw,80px);font-weight:800;letter-spacing:-.045em;line-height:1.02;margin-bottom:20px}
+    h1 span{background:linear-gradient(135deg,#ffd700,#ff8c00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero-sub{font-size:17px;color:var(--muted);max-width:500px;margin:0 auto 40px;font-weight:300;line-height:1.65}
+    .hero-cta{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;background:var(--accent);color:#fff;font-size:14px;font-weight:600;border-radius:10px;transition:opacity .2s,transform .15s;box-shadow:0 8px 32px rgba(255,69,0,.25)}
+    .hero-cta:hover{opacity:.88;transform:translateY(-2px)}
 
-        body {
-            background:
-                radial-gradient(1200px 600px at 10% 10%, rgba(255, 255, 255, 0.02), transparent 12%),
-                linear-gradient(180deg, #070707 0%, #060606 100%);
-            color: var(--fg);
-            font-family: "Geist", Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+    section{position:relative;border-top:1px solid var(--border);padding:80px 0}
+    .label{font-family:var(--f-mono);font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:rgba(255,180,0,.7);margin-bottom:12px}
+    .sh2{font-size:clamp(26px,3.5vw,40px);font-weight:700;letter-spacing:-.04em;line-height:1.1;margin-bottom:14px}
+    .sdesc{font-size:15px;color:var(--muted);line-height:1.65;font-weight:300}
 
-        .container {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center
-        }
+    /* HOW BILLBOARD WORKS */
+    .how-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-top:48px}
+    @media(max-width:768px){.how-grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:480px){.how-grid{grid-template-columns:1fr}}
+    .how-card{background:var(--surface);padding:28px 22px}
+    .how-num{font-family:var(--f-mono);font-size:10px;color:rgba(255,180,0,.5);letter-spacing:.1em;margin-bottom:14px}
+    .how-title{font-size:14px;font-weight:600;color:#fff;letter-spacing:-.02em;margin-bottom:7px}
+    .how-desc{font-size:12px;color:var(--muted);line-height:1.6}
 
-        .email {
-            font-size: clamp(12px, 2.6vw, 28px);
-            font-weight: 600;
-            letter-spacing: 0.04em;
-            text-align: center;
-            opacity: 0.98
-        }
+    /* SPECS */
+    .specs-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start;margin-top:0}
+    @media(max-width:768px){.specs-grid{grid-template-columns:1fr;gap:40px}}
+    .spec-table{width:100%;border-collapse:collapse;margin-top:32px}
+    .spec-table tr{border-bottom:1px solid var(--border)}
+    .spec-table tr:last-child{border-bottom:none}
+    .spec-table td{padding:14px 0;font-size:13px;vertical-align:top}
+    .spec-table td:first-child{color:var(--muted);font-family:var(--f-mono);font-size:11px;letter-spacing:.04em;width:44%;padding-right:16px}
+    .spec-table td:last-child{color:#fff;font-weight:500}
 
-        .email a {
-            color: var(--fg);
-            text-decoration: none
-        }
+    .billboard-preview{background:#040212;border:1px solid rgba(255,200,60,.2);border-radius:18px;padding:24px;position:relative;overflow:hidden}
+    .billboard-preview::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(255,200,60,.06),transparent 60%);pointer-events:none}
+    .bp-tag{font-family:var(--f-mono);font-size:8px;text-transform:uppercase;letter-spacing:.18em;color:rgba(255,180,0,.5);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+    .bp-tag::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:#ffb800;animation:blink 1.4s infinite}
+    .bp-title{font-size:22px;font-weight:700;letter-spacing:-.03em;margin-bottom:6px}
+    .bp-desc{font-size:12px;color:var(--muted);margin-bottom:20px}
+    .bp-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+    .bp-metric{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:10px 14px}
+    .bp-metric-val{font-family:var(--f-mono);font-size:17px;font-weight:600;color:rgba(255,200,80,.9)}
+    .bp-metric-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;font-family:var(--f-mono)}
+    .bp-nearby{margin-top:6px;font-family:var(--f-mono);font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,180,0,.6);text-align:center;padding:8px;border:1px solid rgba(255,180,0,.15);border-radius:8px;background:rgba(255,180,0,.05)}
 
-        .email a:focus,
-        .email a:hover {
-            opacity: 0.9
-        }
+    /* CONTACT */
+    .contact-inner{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+    @media(max-width:768px){.contact-inner{grid-template-columns:1fr;gap:40px}}
+    .contact-links{display:flex;flex-direction:column;gap:12px;margin-top:32px}
+    .contact-link{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;transition:border-color .2s,background .2s}
+    .contact-link:hover{border-color:var(--border2);background:#0d0d0d}
+    .contact-link-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+    .contact-link-label{font-size:11px;color:var(--muted);font-family:var(--f-mono);letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px}
+    .contact-link-val{font-size:14px;font-weight:500;color:#fff;letter-spacing:-.01em}
+    .contact-link-arr{margin-left:auto;color:var(--muted);font-size:16px;transition:transform .2s}
+    .contact-link:hover .contact-link-arr{transform:translateX(3px);color:var(--text)}
 
-        .portfolio {
-            font-size: clamp(10px, 1.6vw, 14px);
-            margin-top: 8px;
-            text-align: center;
-            opacity: 0.85
-        }
+    .faq-list{display:flex;flex-direction:column;gap:0;margin-top:32px}
+    .faq-item{border-bottom:1px solid var(--border);padding:20px 0}
+    .faq-q{font-size:14px;font-weight:600;color:#fff;letter-spacing:-.02em;margin-bottom:8px}
+    .faq-a{font-size:13px;color:var(--muted);line-height:1.6}
 
-        .portfolio a {
-            color: #9bdcff;
-            text-decoration: none
-        }
+    footer{border-top:1px solid var(--border);padding:36px 0}
+    .footer-inner{max-width:1080px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+    .footer-copy{font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+    .footer-links{display:flex;gap:20px;list-style:none}
+    .footer-links a{font-size:12px;color:var(--muted);transition:color .15s}
+    .footer-links a:hover{color:var(--text)}
 
-        .portfolio a:focus,
-        .portfolio a:hover {
-            text-decoration: underline;
-            opacity: 1
-        }
-
-        /* Make sure the page is minimal and accessible */
-        @media (prefers-reduced-motion:reduce) {
-            * {
-                animation: none !important;
-                transition: none !important
-            }
-        }
-    </style>
+    .reveal{opacity:0;transform:translateY(18px);transition:opacity .55s ease,transform .55s ease}
+    .reveal.visible{opacity:1;transform:translateY(0)}
+    .d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.3s}
+  </style>
 </head>
-
 <body>
-    <main class="container" role="main" aria-label="Advertisement Contact">
-        <div>
-            <p class="email"><a href="mailto:aaryansrao5@gmail.com">aaryansrao5@gmail.com</a></p>
-            <p class="portfolio"><a href="https://aryansrao.leapcell.app" target="_blank"
-                    rel="noopener">aryansrao.leapcell.app</a></p>
-        </div>
-    </main>
-</body>
 
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <path fill="rgba(255,255,255,.85)" d="m508.374 432.802s-46.6-39.038-79.495-275.781c-8.833-87.68-82.856-156.139-172.879-156.139-90.015 0-164.046 68.458-172.879 156.138-32.895 236.743-79.495 275.782-79.495 275.782-15.107 25.181 20.733 28.178 38.699 27.94 35.254-.478 35.254 40.294 70.516 40.294 35.254 0 35.254-35.261 70.508-35.261s37.396 45.343 72.65 45.343 37.389-45.343 72.651-45.343c35.254 0 35.254 35.261 70.508 35.261s35.27-40.772 70.524-40.294c17.959.238 53.798-2.76 38.692-27.94z"/>
+        <circle fill="#ff4500" cx="192" cy="225" r="26"/>
+        <circle fill="#ff4500" cx="312" cy="225" r="26"/>
+      </svg>
+      Spectral Drift
+    </a>
+    <a href="/" class="nav-back">← Back to home</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap-sm">
+    <div class="badge reveal"><span class="badge-dot"></span>In-world advertising</div>
+    <h1 class="reveal d1">Reach spirits<br>in the <span>void.</span></h1>
+    <p class="hero-sub reveal d2">Your brand as a glowing 3D billboard inside Spectral Drift's open ghost world. Players approach. Orbs cluster nearby. Your site opens.</p>
+    <a href="mailto:aaryansrao5@gmail.com" class="hero-cta reveal d3">Get in touch →</a>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section>
+  <div class="wrap">
+    <div class="label reveal">How it works</div>
+    <h2 class="sh2 reveal d1">Part of the world,<br>not a banner.</h2>
+    <div class="how-grid reveal d2">
+      <div class="how-card">
+        <div class="how-num">01</div>
+        <div class="how-title">Your ad enters the world</div>
+        <p class="how-desc">A glowing pillar with your brand name, tagline, and a floating billboard spawns at a fixed position in the 3D world — same spot for every player, on every device.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">02</div>
+        <div class="how-title">Orbs cluster nearby</div>
+        <p class="how-desc">Collectible orbs spawn close to your billboard location, creating a natural incentive for spirits to explore that area. Players come for orbs, find your brand.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">03</div>
+        <div class="how-title">Billboard glows on approach</div>
+        <p class="how-desc">Within 9 units, the sign pulses and lights up with a "Walk closer to visit" prompt. The spirit can also click the billboard directly at any time.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">04</div>
+        <div class="how-title">Your site opens</div>
+        <p class="how-desc">Within 4.5 units, your URL opens in a new tab automatically. A 45-second cooldown prevents re-triggering. The spirit stays in the ghost world — you get the visit.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SPECS + PREVIEW -->
+<section>
+  <div class="wrap">
+    <div class="specs-grid">
+      <div>
+        <div class="label reveal">Ad specifications</div>
+        <h2 class="sh2 reveal d1">Everything you<br>get in a slot.</h2>
+        <p class="sdesc reveal d2">Each billboard is fully customisable with your brand name, tagline, URL, and a hex color that determines the glow, pillar, and minimap marker color.</p>
+        <table class="spec-table reveal d2" aria-label="Ad specifications">
+          <tr><td>Format</td><td>CSS2D floating billboard + 3D glowing pillar</td></tr>
+          <tr><td>Fields</td><td>Title, description/tagline, URL, glow color (hex)</td></tr>
+          <tr><td>Trigger radius</td><td>4.5 world units — auto-opens in new tab</td></tr>
+          <tr><td>Glow radius</td><td>9 world units — billboard illuminates, CTA appears</td></tr>
+          <tr><td>Cooldown</td><td>45 seconds per player per ad visit</td></tr>
+          <tr><td>Minimap</td><td>★ marker in your brand color — visible across the world</td></tr>
+          <tr><td>Placement</td><td>Deterministic seeded position — same on all devices</td></tr>
+          <tr><td>Slots available</td><td>5 total (hardcoded in current build)</td></tr>
+          <tr><td>Orb proximity</td><td>Orbs spawn 3–7 units from your billboard anchor</td></tr>
+          <tr><td>Devices</td><td>Desktop + mobile, all modern browsers</td></tr>
+        </table>
+      </div>
+      <div class="reveal d2">
+        <div class="billboard-preview">
+          <div class="bp-tag">Sponsored · Billboard preview</div>
+          <div class="bp-title">Your Brand</div>
+          <p class="bp-desc">Your tagline goes here — one line, concise.</p>
+          <div class="bp-metrics">
+            <div class="bp-metric"><div class="bp-metric-val">4.5u</div><div class="bp-metric-label">Trigger radius</div></div>
+            <div class="bp-metric"><div class="bp-metric-val">9u</div><div class="bp-metric-label">Glow radius</div></div>
+            <div class="bp-metric"><div class="bp-metric-val">★</div><div class="bp-metric-label">Minimap marker</div></div>
+            <div class="bp-metric"><div class="bp-metric-val">45s</div><div class="bp-metric-label">Cooldown</div></div>
+          </div>
+          <div class="bp-nearby">▶ Walk closer to visit</div>
+        </div>
+        <p style="font-size:11px;color:var(--muted);font-family:var(--f-mono);margin-top:16px;line-height:1.6;text-align:center">Billboard appearance in the ghost world. Color, title, and tagline are fully custom.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section>
+  <div class="wrap">
+    <div class="contact-inner">
+      <div>
+        <div class="label reveal">Get a slot</div>
+        <h2 class="sh2 reveal d1">One email<br>to get started.</h2>
+        <p class="sdesc reveal d2">No self-serve dashboard yet — just reach out directly. Include your brand name, tagline, URL, and preferred glow color. Turnaround is usually within 24h.</p>
+        <div class="contact-links">
+          <a href="mailto:aaryansrao5@gmail.com" class="contact-link reveal d1">
+            <div class="contact-link-icon" style="background:rgba(255,69,0,.1);border:1px solid rgba(255,69,0,.2)">✉</div>
+            <div>
+              <div class="contact-link-label">Email</div>
+              <div class="contact-link-val">aaryansrao5@gmail.com</div>
+            </div>
+            <span class="contact-link-arr">→</span>
+          </a>
+          <a href="https://aryansrao.leapcell.app" target="_blank" rel="noopener" class="contact-link reveal d2">
+            <div class="contact-link-icon" style="background:rgba(100,170,255,.1);border:1px solid rgba(100,170,255,.2)">🌐</div>
+            <div>
+              <div class="contact-link-label">Creator portfolio</div>
+              <div class="contact-link-val">aryansrao.leapcell.app</div>
+            </div>
+            <span class="contact-link-arr">↗</span>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <div class="label reveal">FAQ</div>
+        <div class="faq-list">
+          <div class="faq-item reveal">
+            <div class="faq-q">How much does a slot cost?</div>
+            <p class="faq-a">Pricing is flexible — reach out and we'll work something out based on your goals. Early adopters get preferential rates.</p>
+          </div>
+          <div class="faq-item reveal d1">
+            <div class="faq-q">Can I track clicks?</div>
+            <p class="faq-a">The ad opens your URL directly in a new tab, so any analytics (UTM params, etc.) on your end will capture the visit. We don't proxy or intercept anything.</p>
+          </div>
+          <div class="faq-item reveal d2">
+            <div class="faq-q">How long does setup take?</div>
+            <p class="faq-a">Once we confirm the details, your ad can be live within 24 hours — it's a config change in the game file that deploys instantly to Netlify.</p>
+          </div>
+          <div class="faq-item reveal d3">
+            <div class="faq-q">Is there a minimum commitment?</div>
+            <p class="faq-a">No minimum. You can start with a trial period and extend if you're happy with the results.</p>
+          </div>
+          <div class="faq-item reveal">
+            <div class="faq-q">What kind of traffic does the game get?</div>
+            <p class="faq-a">Spectral Drift is growing. It's a browser-native multiplayer experience shared link-to-link — the audience tends to be tech-curious, creative, and engaged.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <span class="footer-copy">Spectral Drift · Built by <a href="https://aryansrao.leapcell.app" target="_blank" rel="noopener" style="color:var(--muted)">Aryan S Rao</a></span>
+    <ul class="footer-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/realm">Play</a></li>
+      <li><a href="https://aryansrao.leapcell.app" target="_blank" rel="noopener">Portfolio</a></li>
+      <li><a href="mailto:aaryansrao5@gmail.com">Email</a></li>
+    </ul>
+  </div>
+</footer>
+
+<script>
+  const els = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target)} });
+  }, {threshold:.1,rootMargin:'0px 0px -40px 0px'});
+  els.forEach(el=>io.observe(el));
+</script>
+</body>
 </html>

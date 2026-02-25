@@ -1,0 +1,3366 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spectral Drift — Multiplayer Ghost World</title>
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><path fill='%23ff4500' d='m256 30c-90 0-164 68-173 156-33 237-79 276-79 276-15 25 21 28 39 28 35 0 35 40 70 40s35-35 71-35 37 45 72 45 37-45 72-45 35 35 71 35 35-40 70-40c18 0 54-3 39-28 0 0-46-39-79-276-9-88-83-156-173-156z'/></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Boldonse&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: "PPSupplyMono";
+      src: url("https://assets.codepen.io/7558/PPSupplyMono-Variable.woff2") format("woff2");
+      font-weight: 100 900;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000
+    }
+
+    /* ── Loader ── */
+    #loader {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      transition: opacity .7s ease;
+      overflow-y: auto;
+      padding: 20px 0
+    }
+
+    #loader.fade {
+      opacity: 0;
+      pointer-events: none
+    }
+
+    .ld-ghost {
+      width: 72px;
+      filter: drop-shadow(0 0 24px rgba(255, 69, 0, .5));
+      animation: ldFloat 2.8s ease-in-out infinite
+    }
+
+    @keyframes ldFloat {
+
+      0%,
+      100% {
+        transform: translateY(0)
+      }
+
+      50% {
+        transform: translateY(-10px)
+      }
+    }
+
+    .ld-title {
+      font-family: "Boldonse", system-ui;
+      font-size: 26px;
+      color: #fff;
+      margin-top: 20px;
+      letter-spacing: .02em
+    }
+
+    .ld-sub {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 9px;
+      color: rgba(255, 255, 255, .25);
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      margin-top: 8px
+    }
+
+    .ld-status {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      color: rgba(255, 69, 0, .6);
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      margin-top: 26px;
+      animation: ldBlink 1.6s ease-in-out infinite
+    }
+
+    @keyframes ldBlink {
+
+      0%,
+      100% {
+        opacity: .4
+      }
+
+      50% {
+        opacity: 1
+      }
+    }
+
+    /* ── Setup form ── */
+    #setup {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      width: min(380px, 90vw);
+      margin-top: 20px
+    }
+
+    #setup.show {
+      display: flex;
+      animation: sfIn .35s ease-out
+    }
+
+    @keyframes sfIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .sf-row {
+      width: 100%;
+      margin-bottom: 14px
+    }
+
+    .sf-label {
+      display: block;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: rgba(255, 255, 255, .28);
+      margin-bottom: 6px
+    }
+
+    .sf-name {
+      display: flex;
+      gap: 6px
+    }
+
+    .sf-input {
+      flex: 1;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #fff;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 12px;
+      outline: none;
+      transition: border-color .18s
+    }
+
+    .sf-input:focus {
+      border-color: rgba(255, 69, 0, .4)
+    }
+
+    .sf-input::placeholder {
+      color: rgba(255, 255, 255, .18)
+    }
+
+    .sf-rnd {
+      background: rgba(255, 69, 0, .1);
+      border: 1px solid rgba(255, 69, 0, .22);
+      border-radius: 10px;
+      padding: 0 13px;
+      color: #ff7040;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background .15s
+    }
+
+    .sf-rnd:hover {
+      background: rgba(255, 69, 0, .2)
+    }
+
+    .sf-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      width: 100%;
+      margin-bottom: 14px
+    }
+
+    .sf-swlabel {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: rgba(255, 255, 255, .22);
+      margin-bottom: 7px
+    }
+
+    .swgrid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px
+    }
+
+    .sw {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform .13s, border-color .13s
+    }
+
+    .sw:hover {
+      transform: scale(1.18)
+    }
+
+    .sw.on {
+      border-color: #fff;
+      transform: scale(1.12)
+    }
+
+    /* ── Seed Phrase display ── */
+    .sf-phrase-box {
+      width: 100%;
+      background: rgba(255, 204, 0, .04);
+      border: 1px solid rgba(255, 204, 0, .18);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px
+    }
+
+    .sf-phrase-hdr {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px
+    }
+
+    .sf-phrase-hdr-icon {
+      font-size: 16px
+    }
+
+    .sf-phrase-title {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: rgba(255, 204, 0, .75)
+    }
+
+    .sf-phrase-warn {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 7px;
+      color: rgba(255, 160, 0, .55);
+      margin-top: 2px;
+      letter-spacing: .06em
+    }
+
+    .sf-words {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+      margin-bottom: 12px
+    }
+
+    .sf-word {
+      background: rgba(0, 0, 0, .5);
+      border: 1px solid rgba(255, 204, 0, .14);
+      border-radius: 7px;
+      padding: 6px 4px;
+      text-align: center
+    }
+
+    .sf-word-num {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 6px;
+      color: rgba(255, 204, 0, .35);
+      display: block;
+      margin-bottom: 2px
+    }
+
+    .sf-word-val {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 10px;
+      color: rgba(255, 220, 80, .9);
+      font-weight: 600;
+      letter-spacing: .04em
+    }
+
+    .sf-copy-phrase {
+      width: 100%;
+      background: rgba(255, 204, 0, .07);
+      border: 1px solid rgba(255, 204, 0, .18);
+      border-radius: 8px;
+      padding: 8px;
+      color: rgba(255, 204, 0, .7);
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      cursor: pointer;
+      transition: background .15s;
+      margin-bottom: 10px
+    }
+
+    .sf-copy-phrase:hover {
+      background: rgba(255, 204, 0, .14)
+    }
+
+    .sf-confirm {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none
+    }
+
+    .sf-confirm input {
+      margin-top: 2px;
+      accent-color: #ffcc00;
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      cursor: pointer
+    }
+
+    .sf-confirm-text {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      color: rgba(255, 255, 255, .38);
+      line-height: 1.5;
+      letter-spacing: .04em
+    }
+
+    .sf-confirm-text strong {
+      color: rgba(255, 200, 0, .7)
+    }
+
+    /* ── Recovery form ── */
+    .sf-recover-link {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      color: rgba(120, 100, 255, .55);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      cursor: pointer;
+      text-decoration: underline;
+      text-align: center;
+      margin-bottom: 8px;
+      transition: color .15s
+    }
+
+    .sf-recover-link:hover {
+      color: rgba(160, 130, 255, .85)
+    }
+
+    #sf-recover-box {
+      width: 100%;
+      background: rgba(80, 50, 200, .05);
+      border: 1px solid rgba(100, 70, 255, .18);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 14px;
+      display: none
+    }
+
+    #sf-recover-box.show {
+      display: block
+    }
+
+    .sf-recover-title {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: rgba(140, 110, 255, .7);
+      margin-bottom: 10px
+    }
+
+    #sf-recover-input {
+      width: 100%;
+      background: rgba(255, 255, 255, .03);
+      border: 1px solid rgba(100, 70, 255, .2);
+      border-radius: 9px;
+      padding: 10px 13px;
+      color: rgba(200, 180, 255, .9);
+      font-family: "PPSupplyMono", monospace;
+      font-size: 11px;
+      outline: none;
+      resize: none;
+      height: 72px;
+      line-height: 1.6;
+      letter-spacing: .05em
+    }
+
+    #sf-recover-input:focus {
+      border-color: rgba(140, 100, 255, .4)
+    }
+
+    #sf-recover-input::placeholder {
+      color: rgba(255, 255, 255, .12)
+    }
+
+    .sf-recover-hint {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 7px;
+      color: rgba(255, 255, 255, .18);
+      margin-top: 6px;
+      letter-spacing: .06em
+    }
+
+    #sf-recover-btn {
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px;
+      background: rgba(100, 70, 200, .7);
+      border: none;
+      border-radius: 9px;
+      color: #fff;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      cursor: pointer;
+      transition: background .15s
+    }
+
+    #sf-recover-btn:hover {
+      background: rgba(130, 90, 240, .85)
+    }
+
+    #sf-recover-err {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      color: rgba(255, 80, 80, .75);
+      margin-top: 6px;
+      min-height: 12px
+    }
+
+    .sf-enter {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, rgba(255, 69, 0, .9), rgba(255, 20, 147, .8));
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      cursor: pointer;
+      transition: opacity .18s, transform .1s
+    }
+
+    .sf-enter:hover {
+      opacity: .88;
+      transform: translateY(-1px)
+    }
+
+    .sf-enter:disabled {
+      opacity: .3;
+      cursor: not-allowed;
+      transform: none
+    }
+
+    /* ── HUD Pill ── */
+    #hudpill {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 300;
+      display: flex;
+      align-items: stretch;
+      background: rgba(6, 5, 14, .88);
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 99px;
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, .5);
+      font-family: "PPSupplyMono", monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      user-select: none;
+      max-width: calc(100vw - 24px);
+      overflow-x: auto;
+      scrollbar-width: none
+    }
+
+    #hudpill::-webkit-scrollbar {
+      display: none
+    }
+
+    .hp-seg {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 13px;
+      height: 34px;
+      color: rgba(255, 255, 255, .42);
+      cursor: default;
+      transition: background .15s, color .15s;
+      white-space: nowrap;
+      flex-shrink: 0
+    }
+
+    .hp-seg.clickable {
+      cursor: pointer
+    }
+
+    .hp-seg.clickable:hover {
+      background: rgba(255, 255, 255, .06);
+      color: rgba(255, 255, 255, .85)
+    }
+
+    .hp-div {
+      width: 1px;
+      background: rgba(255, 255, 255, .08);
+      flex-shrink: 0;
+      margin: 8px 0
+    }
+
+    @media(max-width:420px) {
+
+      #hp-conn-wrap,
+      #hp-div-conn1,
+      #hp-div-conn2 {
+        display: none
+      }
+    }
+
+    @media(max-width:340px) {
+      .hp-seg {
+        padding: 0 9px
+      }
+    }
+
+    .hp-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #333;
+      flex-shrink: 0;
+      transition: background .4s, box-shadow .4s
+    }
+
+    .hp-dot.ok {
+      background: #00cc66;
+      box-shadow: 0 0 5px #00cc6688
+    }
+
+    .hp-dot.bad {
+      background: #ff5522;
+      box-shadow: 0 0 5px #ff552255
+    }
+
+    .hp-dot.pulse {
+      animation: dotPulse 1.4s ease-in-out infinite
+    }
+
+    @keyframes dotPulse {
+
+      0%,
+      100% {
+        opacity: .4
+      }
+
+      50% {
+        opacity: 1
+      }
+    }
+
+    #hp-coord {
+      color: rgba(160, 120, 255, .75)
+    }
+
+    #hp-coord:hover {
+      color: #c0a0ff !important
+    }
+
+    #hp-mic.live {
+      color: #00cc66
+    }
+
+    #hp-mic.live .hp-micico {
+      animation: livePulse .9s ease-in-out infinite alternate
+    }
+
+    @keyframes livePulse {
+      from {
+        opacity: .6
+      }
+
+      to {
+        opacity: 1
+      }
+    }
+
+    #hp-mic.muted {
+      color: rgba(255, 80, 80, .7)
+    }
+
+    #hp-mic.waiting {
+      color: rgba(255, 200, 0, .7);
+      animation: micWait 1s ease-in-out infinite
+    }
+
+    @keyframes micWait {
+
+      0%,
+      100% {
+        opacity: .4
+      }
+
+      50% {
+        opacity: 1
+      }
+    }
+
+    .wdot-c {
+      color: #00ff88;
+      font-size: 8px
+    }
+
+    .wdot-u {
+      color: #66aaff;
+      font-size: 8px
+    }
+
+    .wdot-r {
+      color: #ffcc00;
+      font-size: 8px
+    }
+
+    #hp-wallet {
+      gap: 4px
+    }
+
+    #hp-wallet span.wnum {
+      font-size: 10px;
+      margin-right: 5px
+    }
+
+    /* ── Toasts ── */
+    #orb-toast {
+      position: fixed;
+      top: 54px;
+      right: 16px;
+      z-index: 400;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: rgba(255, 255, 255, .85);
+      background: rgba(0, 0, 0, .8);
+      border: 1px solid transparent;
+      border-radius: 14px;
+      padding: 6px 16px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity .25s, transform .25s
+    }
+
+    #orb-toast.show {
+      opacity: 1;
+      transform: translateY(0)
+    }
+
+    #copytip {
+      position: fixed;
+      top: 54px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 400;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: rgba(255, 255, 255, .7);
+      background: rgba(0, 200, 80, .15);
+      border: 1px solid rgba(0, 200, 80, .25);
+      border-radius: 20px;
+      padding: 5px 14px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .2s
+    }
+
+    #copytip.show {
+      opacity: 1
+    }
+
+    /* ── Panels base ── */
+    #scrim {
+      position: fixed;
+      inset: 0;
+      z-index: 7900;
+      background: rgba(0, 0, 0, .4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .22s
+    }
+
+    #scrim.show {
+      opacity: 1;
+      pointer-events: all
+    }
+
+    #tpflash {
+      position: fixed;
+      inset: 0;
+      z-index: 7000;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, rgba(100, 50, 255, .3) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity .08s
+    }
+
+    #tpflash.pop {
+      opacity: 1
+    }
+
+    /* ── Teleport panel ── */
+    #tppanel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 8000;
+      width: min(360px, 90vw);
+      background: rgba(5, 3, 16, .98);
+      border: 1px solid rgba(120, 80, 255, .28);
+      border-radius: 16px;
+      padding: 26px 24px 22px;
+      box-shadow: 0 0 60px rgba(80, 40, 200, .12);
+      backdrop-filter: blur(20px);
+      display: none
+    }
+
+    #tppanel.open {
+      display: block;
+      animation: tpIn .2s ease-out
+    }
+
+    @keyframes tpIn {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -47%)
+      }
+
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%)
+      }
+    }
+
+    .tp-title {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: rgba(160, 120, 255, .65);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .tp-title::before {
+      content: '⟡';
+      color: #8060ff
+    }
+
+    .tp-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px
+    }
+
+    .tp-field label {
+      display: block;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: rgba(255, 255, 255, .28);
+      margin-bottom: 5px
+    }
+
+    .tp-field input {
+      width: 100%;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(120, 80, 255, .18);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: #c8a0ff;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 13px;
+      outline: none;
+      transition: border-color .18s
+    }
+
+    .tp-field input:focus {
+      border-color: rgba(160, 100, 255, .5)
+    }
+
+    .tp-field input::placeholder {
+      color: rgba(255, 255, 255, .14)
+    }
+
+    .tp-dist {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      color: rgba(255, 255, 255, .2);
+      text-align: center;
+      margin-bottom: 16px;
+      letter-spacing: .04em;
+      line-height: 1.8
+    }
+
+    .tp-btnrow {
+      display: flex;
+      gap: 8px
+    }
+
+    .tp-btn {
+      flex: 1;
+      padding: 11px;
+      border: none;
+      border-radius: 9px;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      cursor: pointer;
+      transition: opacity .18s, transform .1s
+    }
+
+    .tp-btn:hover {
+      opacity: .86;
+      transform: translateY(-1px)
+    }
+
+    .tp-btn.go {
+      background: linear-gradient(135deg, #5020bb, #8030ee);
+      color: #fff
+    }
+
+    .tp-btn.cancel {
+      background: rgba(255, 255, 255, .05);
+      color: rgba(255, 255, 255, .38);
+      border: 1px solid rgba(255, 255, 255, .08)
+    }
+
+    /* ── Customize panel ── */
+    #custpanel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 8000;
+      width: min(340px, 90vw);
+      background: rgba(5, 3, 16, .98);
+      border: 1px solid rgba(255, 69, 0, .18);
+      border-radius: 16px;
+      padding: 26px 24px 22px;
+      box-shadow: 0 0 60px rgba(255, 69, 0, .06);
+      backdrop-filter: blur(20px);
+      display: none
+    }
+
+    #custpanel.open {
+      display: block;
+      animation: tpIn .2s ease-out
+    }
+
+    .cust-title {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: rgba(255, 120, 80, .6);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .cust-title::before {
+      content: '✦';
+      color: #ff4500
+    }
+
+    .cust-section {
+      margin-bottom: 16px
+    }
+
+    .cust-label {
+      display: block;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: rgba(255, 255, 255, .28);
+      margin-bottom: 7px
+    }
+
+    .cust-namewrap {
+      display: flex;
+      gap: 6px
+    }
+
+    .cust-input {
+      flex: 1;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(255, 255, 255, .09);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: #fff;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 11px;
+      outline: none;
+      transition: border-color .18s
+    }
+
+    .cust-input:focus {
+      border-color: rgba(255, 69, 0, .4)
+    }
+
+    .cust-rnd {
+      background: rgba(255, 69, 0, .08);
+      border: 1px solid rgba(255, 69, 0, .18);
+      border-radius: 8px;
+      padding: 0 11px;
+      color: #ff7040;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background .15s
+    }
+
+    .cust-rnd:hover {
+      background: rgba(255, 69, 0, .18)
+    }
+
+    .cust-swgrid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px
+    }
+
+    .cust-save {
+      width: 100%;
+      padding: 11px;
+      margin-top: 4px;
+      background: linear-gradient(135deg, rgba(255, 69, 0, .85), rgba(255, 20, 147, .7));
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      cursor: pointer;
+      transition: opacity .18s
+    }
+
+    .cust-save:hover {
+      opacity: .85
+    }
+
+    /* ── Wallet panel ── */
+    #walletpanel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 8000;
+      width: min(440px, 94vw);
+      max-height: 90vh;
+      overflow-y: auto;
+      background: rgba(4, 3, 14, .99);
+      border: 1px solid rgba(255, 204, 0, .2);
+      border-radius: 18px;
+      padding: 24px 22px 20px;
+      box-shadow: 0 0 80px rgba(255, 180, 0, .08);
+      backdrop-filter: blur(24px);
+      display: none;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, .08) transparent
+    }
+
+    #walletpanel.open {
+      display: block;
+      animation: tpIn .2s ease-out
+    }
+
+    .wp-title {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: rgba(255, 204, 0, .7);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 9px
+    }
+
+    .wp-title::before {
+      content: '💎';
+      font-size: 14px
+    }
+
+    .wp-id {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      color: rgba(255, 255, 255, .2);
+      letter-spacing: .05em;
+      margin-bottom: 14px
+    }
+
+    .wp-id code {
+      color: rgba(255, 204, 0, .5);
+      background: rgba(255, 204, 0, .06);
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      letter-spacing: .08em
+    }
+
+    .wp-bals {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px
+    }
+
+    .wp-bal-card {
+      background: rgba(255, 255, 255, .03);
+      border-radius: 12px;
+      padding: 12px 10px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, .06)
+    }
+
+    .wp-bal-card.c {
+      border-color: rgba(0, 255, 136, .15)
+    }
+
+    .wp-bal-card.u {
+      border-color: rgba(102, 170, 255, .15)
+    }
+
+    .wp-bal-card.r {
+      border-color: rgba(255, 204, 0, .18)
+    }
+
+    .wp-bal-icon {
+      font-size: 18px;
+      margin-bottom: 6px
+    }
+
+    .wp-bal-count {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+      margin-bottom: 4px
+    }
+
+    .wp-bal-label {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 7px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: rgba(255, 255, 255, .25)
+    }
+
+    .wp-bal-supply {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 7px;
+      color: rgba(255, 255, 255, .12);
+      margin-top: 3px
+    }
+
+    .wp-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, .06);
+      margin: 14px 0
+    }
+
+    .wp-sec-label {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: rgba(255, 255, 255, .18);
+      margin-bottom: 10px
+    }
+
+    /* Supply stats */
+    .wp-supply-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 4px
+    }
+
+    .wp-stat {
+      background: rgba(255, 255, 255, .02);
+      border: 1px solid rgba(255, 255, 255, .05);
+      border-radius: 10px;
+      padding: 10px 12px
+    }
+
+    .wp-stat-label {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 7px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: rgba(255, 255, 255, .22);
+      margin-bottom: 5px
+    }
+
+    .wp-stat-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap
+    }
+
+    .wp-stat-chip {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 9px;
+      letter-spacing: .04em
+    }
+
+    .wp-stat-chip.c {
+      color: rgba(0, 255, 136, .65)
+    }
+
+    .wp-stat-chip.u {
+      color: rgba(102, 170, 255, .65)
+    }
+
+    .wp-stat-chip.r {
+      color: rgba(255, 204, 0, .75)
+    }
+
+    .wp-stat-chip.total {
+      color: rgba(255, 255, 255, .45)
+    }
+
+    .wp-stat-bar {
+      height: 3px;
+      background: rgba(255, 255, 255, .06);
+      border-radius: 2px;
+      margin-top: 6px;
+      overflow: hidden
+    }
+
+    .wp-stat-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width .5s ease
+    }
+
+    /* Seed phrase in wallet */
+    .wp-phrase-box {
+      background: rgba(255, 200, 0, .03);
+      border: 1px solid rgba(255, 200, 0, .12);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 4px
+    }
+
+    .wp-phrase-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      margin-bottom: 0
+    }
+
+    .wp-phrase-toggle-label {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: rgba(255, 200, 0, .45)
+    }
+
+    .wp-phrase-toggle-icon {
+      font-size: 10px;
+      color: rgba(255, 200, 0, .4)
+    }
+
+    .wp-phrase-words {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      margin-top: 10px;
+      display: none
+    }
+
+    .wp-phrase-words.show {
+      display: grid
+    }
+
+    .wp-pw {
+      background: rgba(0, 0, 0, .5);
+      border: 1px solid rgba(255, 200, 0, .1);
+      border-radius: 6px;
+      padding: 5px 3px;
+      text-align: center
+    }
+
+    .wp-pw-n {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 6px;
+      color: rgba(255, 200, 0, .3);
+      display: block
+    }
+
+    .wp-pw-w {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 9px;
+      color: rgba(255, 200, 80, .8);
+      letter-spacing: .03em
+    }
+
+    .wp-phrase-copy {
+      width: 100%;
+      margin-top: 8px;
+      background: rgba(255, 200, 0, .06);
+      border: 1px solid rgba(255, 200, 0, .15);
+      border-radius: 7px;
+      padding: 7px;
+      color: rgba(255, 200, 0, .6);
+      font-family: "PPSupplyMono", monospace;
+      font-size: 7px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      cursor: pointer;
+      transition: background .15s;
+      display: none
+    }
+
+    .wp-phrase-copy.show {
+      display: block
+    }
+
+    .wp-phrase-warn {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 7px;
+      color: rgba(255, 140, 0, .45);
+      margin-top: 6px;
+      line-height: 1.5;
+      letter-spacing: .04em;
+      display: none
+    }
+
+    .wp-phrase-warn.show {
+      display: block
+    }
+
+    /* Leaderboard */
+    #wp-lb {
+      max-height: 88px;
+      overflow-y: auto;
+      margin-bottom: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, .08) transparent
+    }
+
+    .wp-lrow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      transition: background .15s
+    }
+
+    .wp-lrow.me {
+      background: rgba(255, 204, 0, .05)
+    }
+
+    .wp-lname {
+      color: rgba(255, 255, 255, .4);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .wp-lname.me {
+      color: rgba(255, 204, 0, .7)
+    }
+
+    .wp-lbals {
+      display: flex;
+      gap: 8px
+    }
+
+    .lbc {
+      color: rgba(0, 255, 136, .5)
+    }
+
+    .lbu {
+      color: rgba(102, 170, 255, .5)
+    }
+
+    .lbr {
+      color: rgba(255, 204, 0, .6)
+    }
+
+    /* Transfer */
+    .wp-to-label {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: rgba(255, 255, 255, .22);
+      margin-bottom: 5px
+    }
+
+    .wp-select {
+      width: 100%;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(255, 255, 255, .09);
+      border-radius: 9px;
+      padding: 9px 12px;
+      color: rgba(255, 255, 255, .65);
+      font-family: "PPSupplyMono", monospace;
+      font-size: 10px;
+      outline: none;
+      margin-bottom: 12px;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,.25)'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center
+    }
+
+    .wp-select:focus {
+      border-color: rgba(255, 204, 0, .3)
+    }
+
+    .wp-xfer-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px
+    }
+
+    .wp-xfer-label {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 7px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 4px
+    }
+
+    .wp-xfer-label.c {
+      color: rgba(0, 255, 136, .55)
+    }
+
+    .wp-xfer-label.u {
+      color: rgba(102, 170, 255, .55)
+    }
+
+    .wp-xfer-label.r {
+      color: rgba(255, 204, 0, .6)
+    }
+
+    .wp-xfer-input {
+      width: 100%;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 8px;
+      padding: 9px 8px;
+      color: #fff;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 14px;
+      outline: none;
+      text-align: center;
+      transition: border-color .18s
+    }
+
+    .wp-xfer-input.c:focus {
+      border-color: rgba(0, 255, 136, .3)
+    }
+
+    .wp-xfer-input.u:focus {
+      border-color: rgba(102, 170, 255, .3)
+    }
+
+    .wp-xfer-input.r:focus {
+      border-color: rgba(255, 204, 0, .3)
+    }
+
+    .wp-btnrow {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px
+    }
+
+    .wp-btn {
+      flex: 1;
+      padding: 11px;
+      border: none;
+      border-radius: 10px;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      cursor: pointer;
+      transition: opacity .18s, transform .1s
+    }
+
+    .wp-btn:hover {
+      opacity: .83;
+      transform: translateY(-1px)
+    }
+
+    .wp-btn.send {
+      background: linear-gradient(135deg, rgba(255, 180, 0, .88), rgba(255, 80, 0, .8));
+      color: #fff
+    }
+
+    .wp-btn.close {
+      background: rgba(255, 255, 255, .05);
+      color: rgba(255, 255, 255, .35);
+      border: 1px solid rgba(255, 255, 255, .08)
+    }
+
+    .wp-status {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      text-align: center;
+      color: rgba(255, 255, 255, .25);
+      margin-top: 9px;
+      min-height: 14px;
+      letter-spacing: .06em
+    }
+
+    .wp-status.ok {
+      color: rgba(0, 255, 136, .75)
+    }
+
+    .wp-status.err {
+      color: rgba(255, 80, 80, .75)
+    }
+
+    .wp-status.warn {
+      color: rgba(255, 200, 0, .75)
+    }
+
+    /* ── Minimap ── */
+    #mmwrap {
+      position: fixed;
+      bottom: 78px;
+      right: 16px;
+      z-index: 200;
+      cursor: default
+    }
+
+    #mm {
+      display: block;
+      border-radius: 50%;
+      box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .12), 0 0 22px rgba(0, 0, 0, .8)
+    }
+
+    #mmlabel {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 7px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: rgba(255, 255, 255, .18);
+      text-align: center;
+      padding: 3px 0 0
+    }
+
+    /* ── Chat ── */
+    #chatbar {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 200;
+      display: flex;
+      gap: 6px;
+      width: min(430px, 88vw)
+    }
+
+    #chatinput {
+      flex: 1;
+      background: rgba(0, 0, 0, .88);
+      border: 1px solid rgba(255, 255, 255, .09);
+      border-radius: 22px;
+      padding: 10px 17px;
+      color: #fff;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 11px;
+      outline: none;
+      backdrop-filter: blur(12px);
+      transition: border-color .18s, background .18s
+    }
+
+    #chatinput:focus {
+      border-color: rgba(255, 69, 0, .4);
+      background: rgba(0, 0, 0, .95)
+    }
+
+    #chatinput::placeholder {
+      color: rgba(255, 255, 255, .18)
+    }
+
+    #chatsend {
+      background: rgba(255, 69, 0, .75);
+      border: none;
+      border-radius: 22px;
+      padding: 10px 15px;
+      color: #fff;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 10px;
+      cursor: pointer;
+      transition: background .18s
+    }
+
+    #chatsend:hover {
+      background: #ff4500
+    }
+
+    #hint {
+      position: fixed;
+      bottom: 57px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: rgba(255, 255, 255, .13);
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 100
+    }
+
+    /* ── Ghost labels ── */
+    .glabel {
+      text-align: center;
+      pointer-events: none
+    }
+
+    .gname {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: rgba(255, 255, 255, .7);
+      white-space: nowrap;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, 1)
+    }
+
+    .gmsg {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 11px;
+      color: #fff;
+      background: rgba(0, 0, 0, .84);
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 8px;
+      padding: 4px 10px;
+      margin-bottom: 4px;
+      max-width: 190px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: none;
+      backdrop-filter: blur(6px);
+      animation: mpop .18s ease-out
+    }
+
+    @keyframes mpop {
+      from {
+        transform: scale(.85) translateY(4px);
+        opacity: 0
+      }
+
+      to {
+        transform: scale(1) translateY(0);
+        opacity: 1
+      }
+    }
+
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0
+    }
+
+    #mm {
+      position: static
+    }
+
+    .gspeaking {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #00dc64;
+      margin-right: 5px;
+      vertical-align: middle;
+      animation: speakPulse .55s ease-in-out infinite alternate
+    }
+
+    @keyframes speakPulse {
+      from {
+        transform: scale(.7);
+        opacity: .5
+      }
+
+      to {
+        transform: scale(1.2);
+        opacity: 1
+      }
+    }
+
+    /* ── Ad billboard labels ── */
+    .ad-label {
+      text-align: center;
+      pointer-events: none
+    }
+
+    .ad-board {
+      background: rgba(4, 2, 18, .92);
+      border: 1px solid rgba(255, 200, 60, .35);
+      border-radius: 10px;
+      padding: 8px 14px 7px;
+      min-width: 110px;
+      max-width: 160px;
+      box-shadow: 0 0 18px rgba(255, 180, 0, .18), 0 0 40px rgba(255, 180, 0, .06);
+      backdrop-filter: blur(8px);
+      transition: box-shadow .3s, border-color .3s;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
+    .ad-board.nearby {
+      border-color: rgba(255, 200, 60, .8);
+      box-shadow: 0 0 28px rgba(255, 180, 0, .55), 0 0 60px rgba(255, 180, 0, .2);
+    }
+
+    .ad-tag {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 6px;
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      color: rgba(255, 180, 0, .5);
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .ad-tag::before {
+      content: '';
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #ffb800;
+      animation: adPulse 1.4s ease-in-out infinite
+    }
+
+    @keyframes adPulse {
+
+      0%,
+      100% {
+        opacity: .4;
+        transform: scale(.8)
+      }
+
+      50% {
+        opacity: 1;
+        transform: scale(1.2)
+      }
+    }
+
+    .ad-title {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: .04em;
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ad-desc {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      color: rgba(255, 255, 255, .38);
+      letter-spacing: .04em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ad-cta {
+      margin-top: 6px;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 7px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: rgba(255, 180, 0, .0);
+      transition: color .25s;
+    }
+
+    .ad-board.nearby .ad-cta {
+      color: rgba(255, 180, 0, .8)
+    }
+
+    /* ── Ad visit toast ── */
+    #ad-toast {
+      position: fixed;
+      bottom: 58px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 400;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: rgba(255, 210, 80, .85);
+      background: rgba(0, 0, 0, .88);
+      border: 1px solid rgba(255, 180, 0, .3);
+      border-radius: 14px;
+      padding: 6px 18px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateX(-50%) translateY(4px);
+      transition: opacity .25s, transform .25s;
+      white-space: nowrap;
+    }
+
+    #ad-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0)
+    }
+
+    #sync-badge {
+      position: fixed;
+      top: 54px;
+      left: 16px;
+      z-index: 300;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 7px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      padding: 4px 10px;
+      border-radius: 10px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .3s;
+      background: rgba(0, 200, 100, .12);
+      border: 1px solid rgba(0, 200, 100, .2);
+      color: rgba(0, 255, 120, .7)
+    }
+
+    #sync-badge.show {
+      opacity: 1
+    }
+
+    /* ── Claim sync-lock banner ── */
+    #sync-lock-banner {
+      position: fixed;
+      top: 54px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 350;
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      padding: 6px 18px;
+      border-radius: 12px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .4s;
+      background: rgba(120, 80, 255, .16);
+      border: 1px solid rgba(140, 100, 255, .3);
+      color: rgba(180, 150, 255, .85);
+      white-space: nowrap
+    }
+
+    #sync-lock-banner.show {
+      opacity: 1
+    }
+
+    /* ── Recovery profile preview ── */
+    #sf-profile-found {
+      display: none;
+      width: 100%;
+      background: rgba(0, 200, 100, .06);
+      border: 1px solid rgba(0, 200, 100, .2);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 12px
+    }
+
+    #sf-profile-found.show {
+      display: block;
+      animation: sfIn .3s ease-out
+    }
+
+    .sf-profile-found-title {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: rgba(0, 220, 120, .7);
+      margin-bottom: 8px
+    }
+
+    .sf-profile-found-row {
+      font-family: "PPSupplyMono", monospace;
+      font-size: 10px;
+      color: rgba(255, 255, 255, .65);
+      letter-spacing: .04em
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Loading overlay -->
+  <div id="loader">
+    <svg class="ld-ghost" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+      <path fill="rgba(255,255,255,.9)"
+        d="m508.374 432.802s-46.6-39.038-79.495-275.781c-8.833-87.68-82.856-156.139-172.879-156.139-90.015 0-164.046 68.458-172.879 156.138-32.895 236.743-79.495 275.782-79.495 275.782-15.107 25.181 20.733 28.178 38.699 27.94 35.254-.478 35.254 40.294 70.516 40.294 35.254 0 35.254-35.261 70.508-35.261s37.396 45.343 72.65 45.343 37.389-45.343 72.651-45.343c35.254 0 35.254 35.261 70.508 35.261s35.27-40.772 70.524-40.294c17.959.238 53.798-2.76 38.692-27.94z" />
+      <circle fill="#ff4500" cx="192" cy="225" r="26" />
+      <circle fill="#ff4500" cx="312" cy="225" r="26" />
+    </svg>
+    <div class="ld-title">Spectral Drift</div>
+    <div class="ld-sub">Open world · P2P · Cryptographic orbs</div>
+    <div class="ld-status" id="ldstatus">Summoning the void…</div>
+
+    <div id="setup">
+      <!-- Seed phrase display (new users) -->
+      <div id="sf-phrase-section" style="width:100%;margin-bottom:14px;display:none">
+        <div class="sf-phrase-box">
+          <div class="sf-phrase-hdr">
+            <span class="sf-phrase-hdr-icon">🔑</span>
+            <div>
+              <div class="sf-phrase-title">Your Recovery Phrase</div>
+              <div class="sf-phrase-warn">⚠ Write these 12 words down. They are the only way to recover your orbs on
+                another device.</div>
+            </div>
+          </div>
+          <div class="sf-words" id="sf-words-grid"></div>
+          <button class="sf-copy-phrase" id="sf-copy-phrase">⬡ Copy all 12 words</button>
+          <label class="sf-confirm" id="sf-confirm-label">
+            <input type="checkbox" id="sf-written"
+              onchange="document.getElementById('sf-enter').disabled=!this.checked">
+            <span class="sf-confirm-text">I have <strong>written down</strong> or safely stored my 12-word recovery
+              phrase. I understand that losing it means losing my orbs permanently.</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Recovery form -->
+      <div class="sf-recover-link" id="sf-recover-toggle">Already have a recovery phrase? Restore identity →</div>
+      <div id="sf-recover-box">
+        <div class="sf-recover-title">🔑 Restore from Seed Phrase</div>
+        <textarea id="sf-recover-input" placeholder="Enter your 12 words separated by spaces…" autocomplete="off"
+          spellcheck="false"></textarea>
+        <div class="sf-recover-hint">Words must match exactly. Order matters.</div>
+        <button id="sf-recover-btn">Restore Identity</button>
+        <div id="sf-recover-err"></div>
+      </div>
+
+      <!-- Profile found after recovery -->
+      <div id="sf-profile-found">
+        <div class="sf-profile-found-title">✓ Identity Found — Profile Restored</div>
+        <div class="sf-profile-found-row" id="sf-profile-found-row"></div>
+      </div>
+
+      <!-- Name & colors -->
+      <div class="sf-row">
+        <label class="sf-label">Name your spirit</label>
+        <div class="sf-name">
+          <input class="sf-input" id="sf-name" type="text" maxlength="18" placeholder="Leave blank for random…"
+            autocomplete="off">
+          <button class="sf-rnd" id="sf-rnd">⟳</button>
+        </div>
+      </div>
+      <div class="sf-cols">
+        <div>
+          <div class="sf-swlabel">Ghost glow</div>
+          <div class="swgrid" id="sf-glowsw"></div>
+        </div>
+        <div>
+          <div class="sf-swlabel">Eye glow</div>
+          <div class="swgrid" id="sf-eyesw"></div>
+        </div>
+      </div>
+      <button class="sf-enter" id="sf-enter">✦ Enter the Void</button>
+    </div>
+  </div>
+
+  <div id="scrim"></div>
+  <div id="tpflash"></div>
+  <div id="orb-toast"></div>
+  <div id="copytip">✓ Link copied</div>
+  <div id="sync-badge">⟳ Ledger synced</div>
+  <div id="ad-toast"></div>
+  <div id="sync-lock-banner">⟳ Syncing your orbs from the network…</div>
+
+  <!-- HUD Pill -->
+  <div id="hudpill">
+    <div class="hp-seg" id="hp-count">👻 <span id="hp-n">1</span></div>
+    <div class="hp-div" id="hp-div-conn1"></div>
+    <div class="hp-seg clickable" id="hp-conn-wrap">
+      <span class="hp-dot bad pulse" id="hp-dot"></span>
+      <span id="hp-connlabel">Searching…</span>
+    </div>
+    <div class="hp-div" id="hp-div-conn2"></div>
+    <div class="hp-seg clickable" id="hp-coord" title="Teleport">⟡ <span id="hp-xyz">X 0 Y 0</span></div>
+    <div class="hp-div"></div>
+    <div class="hp-seg clickable" id="hp-mic"><span class="hp-micico">🎙</span><span id="hp-miclabel">Voice</span></div>
+    <div class="hp-div"></div>
+    <div class="hp-seg clickable" id="hp-wallet" title="Open wallet">
+      <span class="wdot-c">●</span><span class="wnum" id="w-c">0</span>
+      <span class="wdot-u">●</span><span class="wnum" id="w-u">0</span>
+      <span class="wdot-r">●</span><span class="wnum" id="w-r">0</span>
+    </div>
+    <div class="hp-div"></div>
+    <div class="hp-seg clickable" id="hp-cust">✦ Me</div>
+  </div>
+
+  <!-- Teleport panel -->
+  <div id="tppanel">
+    <div class="tp-title">Teleport</div>
+    <div class="tp-grid">
+      <div class="tp-field"><label>X coordinate</label><input id="tpx" type="number" placeholder="0" autocomplete="off">
+      </div>
+      <div class="tp-field"><label>Y coordinate</label><input id="tpy" type="number" placeholder="0" autocomplete="off">
+      </div>
+    </div>
+    <div class="tp-dist" id="tpdist">—</div>
+    <div class="tp-btnrow">
+      <button class="tp-btn cancel" id="tpcancel">✕ Cancel</button>
+      <button class="tp-btn go" id="tpgo">⟡ Teleport</button>
+    </div>
+  </div>
+
+  <!-- Customize panel -->
+  <div id="custpanel">
+    <div class="cust-title">Customize Spirit</div>
+    <div class="cust-section">
+      <label class="cust-label">Spirit name</label>
+      <div class="cust-namewrap">
+        <input class="cust-input" id="cp-name" type="text" maxlength="18" autocomplete="off">
+        <button class="cust-rnd" id="cp-rnd">⟳</button>
+      </div>
+    </div>
+    <div class="cust-section"><label class="cust-label">Ghost glow</label>
+      <div class="cust-swgrid" id="cp-glowsw"></div>
+    </div>
+    <div class="cust-section"><label class="cust-label">Eye glow</label>
+      <div class="cust-swgrid" id="cp-eyesw"></div>
+    </div>
+    <button class="cust-save" id="cp-save">Save changes</button>
+  </div>
+
+  <!-- Wallet panel -->
+  <div id="walletpanel">
+    <div class="wp-title">Spectral Wallet</div>
+    <div class="wp-id">Identity: <code id="wp-idval">—</code></div>
+
+    <div class="wp-bals">
+      <div class="wp-bal-card c">
+        <div class="wp-bal-icon">🟢</div>
+        <div class="wp-bal-count" id="wp-c">0</div>
+        <div class="wp-bal-label">Common</div>
+        <div class="wp-bal-supply" id="wp-cs">— / 400</div>
+      </div>
+      <div class="wp-bal-card u">
+        <div class="wp-bal-icon">🔵</div>
+        <div class="wp-bal-count" id="wp-u">0</div>
+        <div class="wp-bal-label">Uncommon</div>
+        <div class="wp-bal-supply" id="wp-us">— / 80</div>
+      </div>
+      <div class="wp-bal-card r">
+        <div class="wp-bal-icon">🌟</div>
+        <div class="wp-bal-count" id="wp-r">0</div>
+        <div class="wp-bal-label">Rare</div>
+        <div class="wp-bal-supply" id="wp-rs">— / 20</div>
+      </div>
+    </div>
+
+    <div class="wp-divider"></div>
+    <div class="wp-sec-label">Global Supply · Network State</div>
+    <div class="wp-supply-grid" id="wp-supply-grid">
+      <div class="wp-stat">
+        <div class="wp-stat-label">🌍 In World (Unclaimed)</div>
+        <div class="wp-stat-row" id="wp-inworld-row"></div>
+        <div class="wp-stat-bar">
+          <div class="wp-stat-bar-fill" id="wp-inworld-bar" style="background:rgba(100,255,180,.5)"></div>
+        </div>
+      </div>
+      <div class="wp-stat">
+        <div class="wp-stat-label">👻 Held by Spirits</div>
+        <div class="wp-stat-row" id="wp-held-row"></div>
+        <div class="wp-stat-bar">
+          <div class="wp-stat-bar-fill" id="wp-held-bar" style="background:rgba(100,150,255,.5)"></div>
+        </div>
+      </div>
+      <div class="wp-stat">
+        <div class="wp-stat-label">💀 Lost (Offline Wallets)</div>
+        <div class="wp-stat-row" id="wp-lost-row"></div>
+        <div class="wp-stat-bar">
+          <div class="wp-stat-bar-fill" id="wp-lost-bar" style="background:rgba(255,100,100,.5)"></div>
+        </div>
+      </div>
+      <div class="wp-stat">
+        <div class="wp-stat-label">📦 Total Supply</div>
+        <div class="wp-stat-row">
+          <span class="wp-stat-chip c">🟢 400</span>
+          <span class="wp-stat-chip u">🔵 80</span>
+          <span class="wp-stat-chip r">🌟 20</span>
+          <span class="wp-stat-chip total">=500</span>
+        </div>
+        <div class="wp-stat-bar">
+          <div class="wp-stat-bar-fill" style="width:100%;background:rgba(255,255,255,.18)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seed phrase reveal -->
+    <div class="wp-divider"></div>
+    <div class="wp-phrase-box">
+      <div class="wp-phrase-toggle" id="wp-phrase-toggle">
+        <span class="wp-phrase-toggle-label">🔑 Recovery Phrase</span>
+        <span class="wp-phrase-toggle-icon" id="wp-phrase-icon">▶ Reveal</span>
+      </div>
+      <div class="wp-phrase-words" id="wp-phrase-words"></div>
+      <button class="wp-phrase-copy" id="wp-phrase-copy">⬡ Copy 12 words</button>
+      <div class="wp-phrase-warn" id="wp-phrase-warn">⚠ Never share your recovery phrase. Anyone with these words can
+        claim your orbs.</div>
+    </div>
+
+    <div class="wp-divider"></div>
+    <div class="wp-sec-label">Leaderboard · All Spirits</div>
+    <div id="wp-lb"></div>
+
+    <div class="wp-divider"></div>
+    <div class="wp-sec-label">Transfer Orbs</div>
+    <div class="wp-to-label">Recipient</div>
+    <select class="wp-select" id="xfer-to">
+      <option value="">— select a spirit —</option>
+    </select>
+    <div class="wp-xfer-row">
+      <div class="wp-xfer-field">
+        <div class="wp-xfer-label c">🟢 Common</div>
+        <input class="wp-xfer-input c" id="xfer-c" type="number" min="0" value="0" autocomplete="off">
+      </div>
+      <div class="wp-xfer-field">
+        <div class="wp-xfer-label u">🔵 Uncommon</div>
+        <input class="wp-xfer-input u" id="xfer-u" type="number" min="0" value="0" autocomplete="off">
+      </div>
+      <div class="wp-xfer-field">
+        <div class="wp-xfer-label r">🌟 Rare</div>
+        <input class="wp-xfer-input r" id="xfer-r" type="number" min="0" value="0" autocomplete="off">
+      </div>
+    </div>
+    <div class="wp-btnrow">
+      <button class="wp-btn close" id="wp-close">✕ Close</button>
+      <button class="wp-btn send" id="wp-send">⟡ Send Transfer</button>
+    </div>
+    <div class="wp-status" id="wp-status"></div>
+  </div>
+
+  <!-- Minimap -->
+  <div id="mmwrap">
+    <canvas id="mm" width="120" height="120"></canvas>
+    <div id="mmlabel"></div>
+  </div>
+
+  <!-- Chat -->
+  <div id="chatbar">
+    <input id="chatinput" type="text" placeholder="Enter to whisper  ·  /tp x y" maxlength="80">
+    <button id="chatsend">Send</button>
+  </div>
+  <div id="hint">WASD / Arrows to drift &nbsp;·&nbsp; Enter to whisper &nbsp;·&nbsp; /tp x y</div>
+
+  <script type="module">
+    import { joinRoom } from 'https://esm.sh/trystero@0.21.4/torrent';
+    import * as THREE from 'https://esm.sh/three@0.160';
+    import { EffectComposer } from 'https://esm.sh/three@0.160/examples/jsm/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'https://esm.sh/three@0.160/examples/jsm/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'https://esm.sh/three@0.160/examples/jsm/postprocessing/UnrealBloomPass.js';
+    import { OutputPass } from 'https://esm.sh/three@0.160/examples/jsm/postprocessing/OutputPass.js';
+    import { CSS2DRenderer, CSS2DObject } from 'https://esm.sh/three@0.160/examples/jsm/renderers/CSS2DRenderer.js';
+
+    // ─── WORDLIST: exactly 256 words (8 bits/word × 12 = 96 bits entropy) ────────
+    const WORDLIST = [
+      "able", "acid", "aged", "also", "apex", "arch", "aria", "arid", "army", "ashy", "atom", "aunt", "axle", "baby", "back", "bail",
+      "bane", "bark", "barn", "base", "bash", "beam", "bean", "bear", "beat", "belt", "bend", "bird", "bite", "blow", "blue", "bone",
+      "book", "bore", "born", "burn", "cage", "calm", "cape", "card", "care", "cart", "cave", "cell", "chip", "cite", "city", "clam",
+      "clay", "clip", "club", "coal", "coat", "coil", "cold", "cord", "core", "corn", "cove", "crew", "crop", "cube", "curl", "cyan",
+      "damp", "dark", "dash", "data", "dawn", "dead", "deal", "deep", "deny", "dice", "dime", "dire", "disk", "dome", "door", "dose",
+      "dove", "draw", "drip", "drop", "drum", "dusk", "dust", "each", "earn", "edge", "emit", "epic", "even", "evil", "exit", "face",
+      "fact", "fall", "fame", "fang", "farm", "fast", "fate", "feed", "fell", "fern", "file", "fill", "find", "fire", "fish", "fist",
+      "flag", "flat", "flaw", "flex", "flip", "flow", "foam", "fold", "font", "form", "fort", "four", "free", "fuel", "full", "fund",
+      "fury", "fuse", "gale", "gaze", "gear", "gild", "glow", "glue", "gold", "gone", "good", "grit", "grow", "gulf", "gust", "hail",
+      "half", "hall", "halt", "hand", "hard", "harm", "hash", "haul", "heal", "heap", "heat", "helm", "help", "herb", "hill", "hive",
+      "hold", "hole", "home", "hook", "hope", "horn", "howl", "hull", "hunt", "iris", "iron", "isle", "jade", "jail", "jest", "jolt",
+      "keen", "keep", "kern", "kill", "kind", "king", "know", "lack", "lake", "lamb", "lamp", "land", "lark", "lash", "last", "lava",
+      "leaf", "lean", "leap", "lens", "lift", "lime", "list", "lock", "loft", "loop", "lore", "lost", "loud", "lure", "lurk", "mace",
+      "main", "make", "malt", "mare", "mark", "mask", "mast", "maze", "meal", "meet", "melt", "menu", "mesh", "mild", "mill", "mind",
+      "mine", "mint", "mist", "moat", "monk", "moon", "moor", "more", "moth", "move", "much", "nail", "near", "neck", "need", "nest",
+      "next", "node", "noon", "norm", "numb", "oath", "obey", "once", "open", "pack", "pain", "pale", "palm", "path", "peak", "peel"
+    ];
+    // Verify: WORDLIST.length must be 256
+    console.assert(WORDLIST.length === 256, 'Wordlist must be 256 words');
+
+    // ─── SEED PHRASE CRYPTOGRAPHY ─────────────────────────────────────────────────
+
+    // Manually construct PKCS#8 DER for a raw P-256 private key (32 bytes).
+    // This is required because Web Crypto cannot import raw EC private keys directly.
+    // Structure: PrivateKeyInfo → AlgorithmIdentifier (ecPublicKey + P-256) → ECPrivateKey
+    function rawP256ToPKCS8(raw32) {
+      const der = new Uint8Array(67);
+      let i = 0;
+      // SEQUENCE (65 bytes = 0x41)
+      der[i++] = 0x30; der[i++] = 0x41;
+      // INTEGER 0 (version)
+      der[i++] = 0x02; der[i++] = 0x01; der[i++] = 0x00;
+      // AlgorithmIdentifier SEQUENCE (19 bytes = 0x13)
+      der[i++] = 0x30; der[i++] = 0x13;
+      // OID ecPublicKey (1.2.840.10045.2.1)
+      der[i++] = 0x06; der[i++] = 0x07;
+      der.set([0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01], i); i += 7;
+      // OID prime256v1 (1.2.840.10045.3.1.7)
+      der[i++] = 0x06; der[i++] = 0x08;
+      der.set([0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07], i); i += 8;
+      // OCTET STRING wrapping ECPrivateKey (39 bytes = 0x27)
+      der[i++] = 0x04; der[i++] = 0x27;
+      // ECPrivateKey SEQUENCE (37 bytes = 0x25)
+      der[i++] = 0x30; der[i++] = 0x25;
+      // INTEGER 1 (version)
+      der[i++] = 0x02; der[i++] = 0x01; der[i++] = 0x01;
+      // OCTET STRING 32 bytes (the actual private key scalar)
+      der[i++] = 0x04; der[i++] = 0x20;
+      der.set(raw32, i); i += 32;
+      return der.buffer; // total = 67 bytes
+    }
+
+    // Generate a new random 12-word seed phrase
+    function genSeedPhrase() {
+      const entropy = crypto.getRandomValues(new Uint8Array(12));
+      return Array.from(entropy).map(b => WORDLIST[b]).join(' ');
+    }
+
+    // Validate a phrase and return the words array, or throw
+    function validatePhrase(phrase) {
+      const words = phrase.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      if (words.length !== 12) throw new Error(`Expected 12 words, got ${words.length}`);
+      words.forEach(w => { if (!WORDLIST.includes(w)) throw new Error(`Unknown word: "${w}"`); });
+      return words;
+    }
+
+    // Deterministically derive a P-256 keypair from a seed phrase.
+    // Same phrase always produces the same keypair — the heart of seed phrase recovery.
+    async function seedPhraseToKeypair(phrase) {
+      const words = validatePhrase(phrase);
+      const entropy = new Uint8Array(words.map(w => WORDLIST.indexOf(w)));
+
+      // PBKDF2: 210,000 iterations, SHA-256, 32 bytes output
+      const baseKey = await crypto.subtle.importKey(
+        'raw', entropy, { name: 'PBKDF2' }, false, ['deriveBits']
+      );
+      const derived = await crypto.subtle.deriveBits(
+        {
+          name: 'PBKDF2', salt: new TextEncoder().encode('spectral-drift-v1-seed'),
+          iterations: 210000, hash: 'SHA-256'
+        },
+        baseKey, 256
+      );
+      const raw32 = new Uint8Array(derived);
+
+      // Import as P-256 private key via PKCS#8 trick
+      const privKey = await crypto.subtle.importKey(
+        'pkcs8', rawP256ToPKCS8(raw32),
+        { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']
+      );
+
+      // Extract x,y coordinates from private key JWK to reconstruct public key
+      const jwk = await crypto.subtle.exportKey('jwk', privKey);
+      const pubKey = await crypto.subtle.importKey(
+        'jwk', { kty: 'EC', crv: 'P-256', x: jwk.x, y: jwk.y },
+        { name: 'ECDSA', namedCurve: 'P-256' }, true, ['verify']
+      );
+
+      return { privateKey: privKey, publicKey: pubKey };
+    }
+
+    // ─── BINARY / HEX HELPERS ────────────────────────────────────────────────────
+    function buf2b64(buf) { const b = new Uint8Array(buf); let s = ''; for (let i = 0; i < b.length; i++)s += String.fromCharCode(b[i]); return btoa(s) }
+    function b642buf(b64) { const bin = atob(b64); const b = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++)b[i] = bin.charCodeAt(i); return b.buffer }
+    function buf2hex(buf) { return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('') }
+    async function sha256hex(str) { return buf2hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))) }
+    function rndHex(n = 8) { return buf2hex(crypto.getRandomValues(new Uint8Array(n))) }
+
+    // ─── KEY MANAGEMENT ──────────────────────────────────────────────────────────
+    let myKP = null, myPK = '', myShortId = '', myPhrase = '';
+    const pkCache = new Map();
+
+    async function initCrypto() {
+      const stored = localStorage.getItem('sd-phrase');
+      if (stored) {
+        try {
+          myPhrase = stored;
+          myKP = await seedPhraseToKeypair(stored);
+          myPK = buf2b64(await crypto.subtle.exportKey('spki', myKP.publicKey));
+        } catch (e) {
+          console.warn('Stored phrase invalid, regenerating:', e);
+          localStorage.removeItem('sd-phrase');
+          myPhrase = genSeedPhrase();
+          myKP = await seedPhraseToKeypair(myPhrase);
+          myPK = buf2b64(await crypto.subtle.exportKey('spki', myKP.publicKey));
+        }
+      } else {
+        // New user — phrase will be shown in setup UI, saved on "Enter the Void"
+        myPhrase = genSeedPhrase();
+        myKP = await seedPhraseToKeypair(myPhrase);
+        myPK = buf2b64(await crypto.subtle.exportKey('spki', myKP.publicKey));
+      }
+      myShortId = (await sha256hex(myPK)).slice(0, 8).toUpperCase();
+      document.getElementById('wp-idval').textContent = myShortId;
+    }
+
+    async function getPK(pkStr) {
+      if (pkCache.has(pkStr)) return pkCache.get(pkStr);
+      const k = await crypto.subtle.importKey('spki', b642buf(pkStr), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
+      pkCache.set(pkStr, k); return k;
+    }
+    async function signObj(obj) { const bytes = new TextEncoder().encode(JSON.stringify(obj)); const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, myKP.privateKey, bytes); return buf2b64(sig) }
+    async function verifyObj(obj, sig, pkStr) { try { const bytes = new TextEncoder().encode(JSON.stringify(obj)); const k = await getPK(pkStr); return await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, k, b642buf(sig), bytes) } catch { return false } }
+
+    // ─── CONSTANTS ───────────────────────────────────────────────────────────────
+    const ADJ = ['Wandering', 'Hollow', 'Pale', 'Ashen', 'Dim', 'Veiled', 'Fading', 'Silent', 'Drifting', 'Cursed', 'Eerie', 'Mist', 'Void', 'Lost', 'Stray', 'Quiet', 'Bitter'];
+    const NOUN = ['Specter', 'Wisp', 'Shade', 'Wraith', 'Revenant', 'Phantom', 'Echo', 'Shadow', 'Vapor', 'Ember', 'Flux', 'Shard', 'Mote', 'Hollow', 'Drift'];
+    const rndName = () => ADJ[Math.random() * ADJ.length | 0] + ' ' + NOUN[Math.random() * NOUN.length | 0];
+    const WORLD = 120, SPEED = 0.14, SYNC_MS = 120, MSG_LIFE = 7000;
+    const ROOM_ID = 'ghost-realm-main-v3', MM_RANGE = 38;
+    const PAL = { orange: 0xff4500, cyan: 0x00ffff, lime: 0x00ff00, magenta: 0xff00ff, yellow: 0xffff00, pink: 0xff1493, purple: 0x9400d3, blue: 0x0080ff, green: 0x00ff80, red: 0xff0040, teal: 0x00ffaa, violet: 0x8a2be2 };
+    const CSS_C = { orange: '#ff4500', cyan: '#00ffff', lime: '#00ff00', magenta: '#ff00ff', yellow: '#ffff00', pink: '#ff1493', purple: '#9400d3', blue: '#0080ff', green: '#00ff80', red: '#ff0040', teal: '#00ffaa', violet: '#8a2be2' };
+    const CK = Object.keys(PAL);
+
+    // ─── ORB WORLD ────────────────────────────────────────────────────────────────
+    function mkRng(seed) { let a = seed; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296 } }
+    const WORLD_RNG = mkRng(0xCAFEBABE);
+    const ORB_TYPES = ['common', 'uncommon', 'rare'];
+    const ORB_SUPPLY = { common: 400, uncommon: 80, rare: 20 };
+    const ORB_SPREAD = 160, CLAIM_DIST = 2.5, ORB_VIS = 45;
+    const ORB_3D = { common: { hex: 0x00bb44, emit: 0x00ff77, r: .28, ei: 4.5 }, uncommon: { hex: 0x2244cc, emit: 0x55aaff, r: .38, ei: 4.5 }, rare: { hex: 0xcc8800, emit: 0xffcc00, r: .54, ei: 6.5 } };
+    const ORB_CSS_COL = { common: '#00ff88', uncommon: '#66aaff', rare: '#ffcc00' };
+    const ORB_EMOJI = { common: '🟢', uncommon: '🔵', rare: '🌟' };
+    let orbDefs = [];
+
+    function genOrbDefs() {
+      orbDefs = []; let id = 0;
+      for (const type of ORB_TYPES) for (let i = 0; i < ORB_SUPPLY[type]; i++)
+        orbDefs.push({ id: id++, type, x: (WORLD_RNG() * 2 - 1) * ORB_SPREAD, y: (WORLD_RNG() * 2 - 1) * ORB_SPREAD, claimed: false, mesh: null });
+    }
+    function buildOrbMeshes() {
+      for (const orb of orbDefs) {
+        if (orb.claimed) continue;
+        const cfg = ORB_3D[orb.type];
+        const mat = new THREE.MeshStandardMaterial({ color: cfg.hex, emissive: new THREE.Color(cfg.emit), emissiveIntensity: cfg.ei, transparent: true, opacity: .95 });
+        const mesh = new THREE.Mesh(new THREE.SphereGeometry(cfg.r, 8, 8), mat);
+        mesh.position.set(orb.x, orb.y, .6); mesh.visible = false; scene.add(mesh); orb.mesh = mesh;
+      }
+    }
+    function removeOrbMesh(orb) { if (!orb.mesh) return; scene.remove(orb.mesh); orb.mesh.geometry.dispose(); orb.mesh.material.dispose(); orb.mesh = null; orb.claimed = true }
+    function restoreOrbMesh(orb) {
+      orb.claimed = false; if (orb.mesh) return;
+      const cfg = ORB_3D[orb.type];
+      const mat = new THREE.MeshStandardMaterial({ color: cfg.hex, emissive: new THREE.Color(cfg.emit), emissiveIntensity: cfg.ei, transparent: true, opacity: .95 });
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(cfg.r, 8, 8), mat);
+      mesh.position.set(orb.x, orb.y, .6); mesh.visible = false; scene.add(mesh); orb.mesh = mesh;
+    }
+
+    // ─── AD SYSTEM ───────────────────────────────────────────────────────────────
+    // ✏️  CONFIGURE YOUR ADS HERE — add/edit/remove entries freely.
+    // Each ad needs: title, desc (tagline), url (opens on approach), color (hex glow)
+    // Ads are placed deterministically near orb clusters using a seeded RNG.
+    const AD_CONFIG = [
+      { title: 'Get your ads here', desc: 'spectral-drift.netlify.app/ads', url: 'https://spectral-drift.netlify.app/ads', color: '#ff9900' },
+    ];
+
+    const AD_TRIGGER_DIST = 4.5;   // distance at which URL opens (units)
+    const AD_NEARBY_DIST = 9;     // distance at which billboard glows + CTA appears
+    const AD_VIS_DIST = 50;    // visibility culling distance
+    const AD_COOLDOWN_MS = 45000; // ms before same ad can trigger again
+    const AD_ORB_OFFSET = 4;     // how many orbs to skip before placing an ad near one
+
+    let adDefs = [];   // { id, title, desc, url, color, x, y, mesh, labelDiv, boardEl, lastVisit }
+
+    function genAdDefs() {
+      // Use a separate seeded RNG so ads don't disturb orb layout
+      const adRng = mkRng(0xDEADBEEF);
+      adDefs = [];
+
+      // Pick orbs as anchors — evenly spaced through the orbDefs array
+      const step = Math.floor(orbDefs.length / AD_CONFIG.length);
+      AD_CONFIG.forEach((cfg, i) => {
+        const anchor = orbDefs[AD_ORB_OFFSET + i * step];
+        if (!anchor) return;
+        // Place ad 3-7 units from the anchor orb in a random direction
+        const angle = adRng() * Math.PI * 2;
+        const radius = 3 + adRng() * 4;
+        adDefs.push({
+          id: i,
+          title: cfg.title,
+          desc: cfg.desc,
+          url: cfg.url,
+          color: cfg.color,
+          x: anchor.x + Math.cos(angle) * radius,
+          y: anchor.y + Math.sin(angle) * radius,
+          mesh: null, labelDiv: null, boardEl: null,
+          lastVisit: 0,
+        });
+      });
+    }
+
+    function buildAdMeshes() {
+      for (const ad of adDefs) {
+        // Glowing post — thin vertical cylinder
+        const postMat = new THREE.MeshStandardMaterial({
+          color: 0x111122,
+          emissive: new THREE.Color(ad.color),
+          emissiveIntensity: 2.5,
+        });
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 3.5, 8), postMat);
+        post.position.set(ad.x, ad.y, 1.5);
+        post.rotation.x = Math.PI / 2; // stand upright in XY world plane
+
+        // Top glow sphere
+        const capMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(ad.color), transparent: true, opacity: 0.85 });
+        const cap = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), capMat);
+        cap.position.set(ad.x, ad.y, 3.6);
+
+        // Point light to cast glow
+        const light = new THREE.PointLight(new THREE.Color(ad.color).getHex(), 0.6, 12, 2);
+        light.position.set(ad.x, ad.y, 2.5);
+
+        scene.add(post); scene.add(cap); scene.add(light);
+        ad.mesh = { post, cap, capMat, postMat, light };
+
+        // CSS2D billboard label
+        const div = document.createElement('div');
+        div.className = 'ad-label';
+        const board = document.createElement('div');
+        board.className = 'ad-board';
+        board.style.borderColor = hexToRgba(ad.color, 0.35);
+        board.innerHTML = `
+      <div class="ad-tag" style="--ac:${ad.color}">Sponsored</div>
+      <div class="ad-title">${escHtml(ad.title)}</div>
+      <div class="ad-desc">${escHtml(ad.desc)}</div>
+      <div class="ad-cta">▶ Walk closer to visit</div>`;
+        board.addEventListener('click', () => visitAd(ad));
+        div.appendChild(board);
+        ad.labelDiv = div;
+        ad.boardEl = board;
+
+        const obj = new CSS2DObject(div);
+        obj.position.set(ad.x, ad.y, 4.2); // float above the post
+        scene.add(obj);
+        ad._labelObj = obj;
+      }
+    }
+
+    function hexToRgba(hex, a) {
+      const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r},${g},${b},${a})`;
+    }
+    function escHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+    function visitAd(ad) {
+      const now = Date.now();
+      if (now - ad.lastVisit < AD_COOLDOWN_MS) return;
+      ad.lastVisit = now;
+      window.open(ad.url, '_blank', 'noopener,noreferrer');
+      showAdToast(`Opening: ${ad.title}`);
+    }
+
+    function showAdToast(msg) {
+      const t = document.getElementById('ad-toast');
+      t.textContent = '✦ ' + msg;
+      t.classList.add('show');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    // Called from main loop — updates glow/CTA and triggers visit on close approach
+    let _adNearby = null;
+    function tickAds(t) {
+      const now = Date.now();
+      for (const ad of adDefs) {
+        if (!ad.mesh) continue;
+        const dx = ad.x - pos.x, dy = ad.y - pos.y;
+        const dist2 = dx * dx + dy * dy;
+        const dist = Math.sqrt(dist2);
+
+        // Visibility culling
+        const visible = dist < AD_VIS_DIST;
+        ad.mesh.post.visible = visible;
+        ad.mesh.cap.visible = visible;
+        if (!visible) { ad.labelDiv.style.display = 'none'; continue; }
+        ad.labelDiv.style.display = '';
+
+        const nearby = dist < AD_NEARBY_DIST;
+        const trigger = dist < AD_TRIGGER_DIST;
+
+        // Billboard glow pulse
+        const pulse = 1 + Math.sin(t * 2.2 + ad.id) * 0.4;
+        ad.mesh.postMat.emissiveIntensity = nearby ? 4.5 * pulse : 2.0;
+        ad.mesh.capMat.opacity = nearby ? 1 : 0.65;
+        ad.mesh.light.intensity = nearby ? 1.2 * pulse : 0.5;
+        ad.mesh.cap.position.z = 3.6 + Math.sin(t * 1.8 + ad.id * 1.3) * 0.12;
+
+        // CSS board state
+        if (nearby) {
+          ad.boardEl.classList.add('nearby');
+          ad.boardEl.style.borderColor = hexToRgba(ad.color, 0.8);
+          ad.boardEl.style.boxShadow = `0 0 28px ${hexToRgba(ad.color, .55)}, 0 0 60px ${hexToRgba(ad.color, .2)}`;
+        } else {
+          ad.boardEl.classList.remove('nearby');
+          ad.boardEl.style.borderColor = hexToRgba(ad.color, 0.35);
+          ad.boardEl.style.boxShadow = '';
+        }
+
+        // Auto-visit on walk-over (with cooldown)
+        if (trigger && now - ad.lastVisit >= AD_COOLDOWN_MS) {
+          visitAd(ad);
+        }
+      }
+    }
+
+    // Draw ad markers on minimap (★ in ad color)
+    function drawAdsMm() {
+      for (const ad of adDefs) {
+        const dx = ad.x - pos.x, dy = ad.y - pos.y;
+        if (Math.abs(dx) > MM_RANGE || Math.abs(dy) > MM_RANGE) continue;
+        const mx = R + dx * mmScale, my = R - dy * mmScale;
+        if (Math.hypot(mx - R, my - R) > R - 2) continue;
+        mmx.fillStyle = ad.color;
+        mmx.globalAlpha = 0.9;
+        mmx.font = 'bold 8px monospace';
+        mmx.textAlign = 'center';
+        mmx.fillText('★', mx, my + 3);
+        mmx.globalAlpha = 1;
+      }
+    }
+
+    // ─── END AD SYSTEM ───────────────────────────────────────────────────────────
+
+    let ledger = [];
+    const txSet = new Set();
+    const offenders = new Map();
+    const BLACKLIST_AT = 3;
+    // Track last-seen timestamps per public key (for "lost orbs" calculation)
+    const lastSeen = new Map();
+
+    function saveLedger() {
+      try {
+        localStorage.setItem('sd-ledger-v2', JSON.stringify(ledger));
+        // Persist last-seen map
+        const lsObj = {}; lastSeen.forEach((v, k) => lsObj[k] = v);
+        localStorage.setItem('sd-lastseen', JSON.stringify(lsObj));
+      } catch (e) {
+        // Storage full — keep last 800 txs
+        const trimmed = ledger.slice(-800);
+        try { localStorage.setItem('sd-ledger-v2', JSON.stringify(trimmed)) } catch (_) { }
+      }
+    }
+
+    function loadPersistedLedger() {
+      try {
+        const raw = localStorage.getItem('sd-ledger-v2');
+        if (!raw) return [];
+        return JSON.parse(raw);
+      } catch { return [] }
+    }
+
+    function loadPersistedLastSeen() {
+      try {
+        const raw = localStorage.getItem('sd-lastseen');
+        if (!raw) return;
+        const obj = JSON.parse(raw);
+        Object.entries(obj).forEach(([k, v]) => lastSeen.set(k, v));
+      } catch { }
+    }
+
+    function getBalance(pk) {
+      const b = { common: 0, uncommon: 0, rare: 0 };
+      for (const tx of ledger) {
+        if (tx.type === 'claim' && tx.from === pk) b[tx.orbType]++;
+        else if (tx.type === 'transfer') {
+          if (tx.from === pk) ORB_TYPES.forEach(k => b[k] -= (tx.amount[k] || 0));
+          if (tx.to === pk) ORB_TYPES.forEach(k => b[k] += (tx.amount[k] || 0));
+        }
+      }
+      return b;
+    }
+    function orbClaimed(orbId) { return ledger.some(tx => tx.type === 'claim' && tx.orbId === orbId) }
+    function claimedCounts() { const c = { common: 0, uncommon: 0, rare: 0 }; for (const tx of ledger) if (tx.type === 'claim') c[tx.orbType]++; return c }
+
+    // All public keys that have ever appeared in the ledger
+    function allHistoricPKs() {
+      const s = new Set();
+      for (const tx of ledger) { s.add(tx.from); if (tx.to) s.add(tx.to) }
+      return s;
+    }
+
+    // Supply analytics — the "Bitcoin network view"
+    function getSupplyStats() {
+      const total = 400 + 80 + 20; // 500
+      const cc = claimedCounts();
+      const totalClaimed = cc.common + cc.uncommon + cc.rare;
+      const inWorld = total - totalClaimed;
+
+      // Active PKs = me + currently connected peers
+      const activePKs = new Set([myPK]);
+      for (const [, e] of remotes) if (e.pk) activePKs.add(e.pk);
+
+      // "Lost" = orbs held by wallets not seen in this session
+      // (approximation of Bitcoin's "lost coins" — offline since before session start)
+      let lostC = 0, lostU = 0, lostR = 0;
+      let heldC = 0, heldU = 0, heldR = 0;
+      for (const pk of allHistoricPKs()) {
+        const b = getBalance(pk);
+        if (activePKs.has(pk)) { heldC += b.common; heldU += b.uncommon; heldR += b.rare }
+        else { lostC += b.common; lostU += b.uncommon; lostR += b.rare }
+      }
+
+      return {
+        total, totalClaimed, inWorld,
+        held: { c: heldC, u: heldU, r: heldR, t: heldC + heldU + heldR },
+        lost: { c: lostC, u: lostU, r: lostR, t: lostC + lostU + lostR },
+        inWorldBreak: { c: ORB_SUPPLY.common - cc.common, u: ORB_SUPPLY.uncommon - cc.uncommon, r: ORB_SUPPLY.rare - cc.rare }
+      };
+    }
+
+    async function validateTx(tx) {
+      if (!tx || !tx.id || !tx.sig || !tx.type || !tx.from) return 'malformed';
+      if (txSet.has(tx.id)) return 'duplicate';
+      if ((offenders.get(tx.from) || 0) >= BLACKLIST_AT) return 'blacklisted';
+      const { id, sig, ...data } = tx;
+      if (!(await verifyObj(data, sig, tx.from))) return 'bad_sig';
+      const expected = await sha256hex(JSON.stringify({ ...data, sig }));
+      if (expected !== tx.id) return 'bad_hash';
+      if (tx.type === 'claim') {
+        // If this orb is already claimed by ANY tx (even a different one from the same sender),
+        // it's just a race — not cheating. The first valid claim wins.
+        if (orbClaimed(tx.orbId)) return 'already_claimed';
+        const orb = orbDefs[tx.orbId];
+        if (!orb || orb.type !== tx.orbType) return 'invalid_orb';
+      } else if (tx.type === 'transfer') {
+        if (tx.from === tx.to) return 'self_transfer';
+        if (!tx.amount || typeof tx.amount !== 'object') return 'malformed';
+        const bal = getBalance(tx.from); let total = 0;
+        for (const k of ORB_TYPES) { const amt = tx.amount[k] || 0; if (amt < 0) return 'negative'; if (bal[k] < amt) return 'insufficient'; total += amt }
+        if (total === 0) return 'empty';
+      } else return 'unknown_type';
+      return 'ok';
+    }
+
+    async function applyTx(tx, broadcast = false) {
+      const verdict = await validateTx(tx);
+      if (verdict === 'ok') {
+        ledger.push(tx); txSet.add(tx.id);
+        lastSeen.set(tx.from, Date.now());
+        if (tx.type === 'claim') { const orb = orbDefs[tx.orbId]; if (orb) removeOrbMesh(orb) }
+        saveLedger();
+        updateWalletHUD();
+        if (broadcast) sendTx(tx);
+        return true;
+      }
+
+      // ── Strike logic: ONLY for cryptographic fraud, never for race conditions ──
+      // already_claimed / duplicate / insufficient / empty = normal P2P races, silent skip
+      // bad_sig / bad_hash / negative = actual cheating, penalize
+      const CHEAT_VERDICTS = new Set(['bad_sig', 'bad_hash', 'negative', 'malformed', 'unknown_type']);
+      if (CHEAT_VERDICTS.has(verdict)) {
+        const strikes = (offenders.get(tx.from) || 0) + 1;
+        offenders.set(tx.from, strikes);
+        console.warn(`[Ledger] Cheat TX (${verdict}) — strikes for ${tx.from.slice(-8)}: ${strikes}`);
+        if (strikes >= BLACKLIST_AT) purgeAccount(tx.from);
+      } else if (verdict !== 'duplicate') {
+        // Log races silently for debugging but never punish
+        console.debug(`[Ledger] TX skipped (${verdict}) — normal race, no strike`);
+      }
+      return false;
+    }
+
+    function purgeAccount(pk) {
+      console.warn('[Ledger] Purging cheater account:', pk.slice(-8));
+      const orbsToRestore = ledger.filter(tx => tx.from === pk && tx.type === 'claim').map(tx => tx.orbId);
+      ledger = ledger.filter(tx => tx.from !== pk && tx.to !== pk);
+      txSet.clear(); ledger.forEach(tx => txSet.add(tx.id));
+      for (const id of orbsToRestore) restoreOrbMesh(orbDefs[id]);
+      saveLedger(); updateWalletHUD();
+    }
+
+    async function buildClaimTx(orb) {
+      const data = { type: 'claim', from: myPK, to: myPK, orbId: orb.id, orbType: orb.type, nonce: rndHex(), ts: Date.now() };
+      const sig = await signObj(data);
+      const id = await sha256hex(JSON.stringify({ ...data, sig }));
+      return { ...data, sig, id };
+    }
+    async function buildTransferTx(toPK, amount) {
+      const data = { type: 'transfer', from: myPK, to: toPK, amount, nonce: rndHex(), ts: Date.now() };
+      const sig = await signObj(data);
+      const id = await sha256hex(JSON.stringify({ ...data, sig }));
+      return { ...data, sig, id };
+    }
+
+    let lastClaimCheck = 0, claimsInFlight = new Set();
+    async function checkClaims() {
+      const now = Date.now();
+      if (now - lastClaimCheck < 300) return; lastClaimCheck = now;
+      // Don't claim during sync window — wait for peer ledger first
+      if (now < claimLockUntil) return;
+      for (const orb of orbDefs) {
+        if (orb.claimed || claimsInFlight.has(orb.id)) continue;
+        if (Math.hypot(orb.x - pos.x, orb.y - pos.y) > CLAIM_DIST) continue;
+        claimsInFlight.add(orb.id);
+        const tx = await buildClaimTx(orb);
+        const ok = await applyTx(tx, true);
+        claimsInFlight.delete(orb.id);
+        if (ok) showOrbToast(orb.type);
+      }
+    }
+
+    // ─── WALLET UI ────────────────────────────────────────────────────────────────
+    function updateWalletHUD() {
+      const b = getBalance(myPK);
+      document.getElementById('w-c').textContent = b.common;
+      document.getElementById('w-u').textContent = b.uncommon;
+      document.getElementById('w-r').textContent = b.rare;
+    }
+
+    function updateWalletPanel() {
+      const b = getBalance(myPK);
+      const cc = claimedCounts();
+      document.getElementById('wp-c').textContent = b.common;
+      document.getElementById('wp-u').textContent = b.uncommon;
+      document.getElementById('wp-r').textContent = b.rare;
+      document.getElementById('wp-cs').textContent = `${cc.common} / 400`;
+      document.getElementById('wp-us').textContent = `${cc.uncommon} / 80`;
+      document.getElementById('wp-rs').textContent = `${cc.rare} / 20`;
+      updateSupplyStats();
+      rebuildLeaderboard(); rebuildPeerSelect();
+    }
+
+    function updateSupplyStats() {
+      const s = getSupplyStats();
+      const pct = n => Math.round(n / s.total * 100);
+
+      const [$iw, $h, $l] = ['wp-inworld-row', 'wp-held-row', 'wp-lost-row'].map(id => document.getElementById(id));
+      [$iw, $h, $l].forEach(el => { if (el) el.innerHTML = '' });
+
+      function chipRow(el, c, u, r) {
+        const t = c + u + r;
+        el.innerHTML = `<span class="wp-stat-chip c">🟢${c}</span><span class="wp-stat-chip u">🔵${u}</span><span class="wp-stat-chip r">🌟${r}</span><span class="wp-stat-chip total">(${t})</span>`;
+      }
+      chipRow($iw, s.inWorldBreak.c, s.inWorldBreak.u, s.inWorldBreak.r);
+      chipRow($h, s.held.c, s.held.u, s.held.r);
+      chipRow($l, s.lost.c, s.lost.u, s.lost.r);
+
+      document.getElementById('wp-inworld-bar').style.width = pct(s.inWorld) + '%';
+      document.getElementById('wp-held-bar').style.width = pct(s.held.t) + '%';
+      document.getElementById('wp-lost-bar').style.width = pct(s.lost.t) + '%';
+    }
+
+    function allKnownPKs() {
+      const out = [{ pk: myPK, name: myName, me: true }];
+      for (const [, e] of remotes) if (e.pk) out.push({ pk: e.pk, name: e.ghost.nmEl.textContent || 'Unknown', me: false });
+      return out;
+    }
+
+    function rebuildLeaderboard() {
+      const lb = document.getElementById('wp-lb');
+      const all = allKnownPKs();
+      all.sort((a, b) => { const ba = getBalance(a.pk), bb = getBalance(b.pk); return (bb.common + bb.uncommon * 5 + bb.rare * 25) - (ba.common + ba.uncommon * 5 + ba.rare * 25) });
+      lb.innerHTML = '';
+      for (const { pk, name, me } of all) {
+        const b = getBalance(pk); if (!me && b.common + b.uncommon + b.rare === 0) continue;
+        const row = document.createElement('div'); row.className = 'wp-lrow' + (me ? ' me' : '');
+        row.innerHTML = `<span class="wp-lname${me ? ' me' : ''}">${me ? '★ ' : ''}${name}</span><span class="wp-lbals"><span class="lbc">🟢${b.common}</span><span class="lbu">🔵${b.uncommon}</span><span class="lbr">🌟${b.rare}</span></span>`;
+        lb.appendChild(row);
+      }
+      if (!lb.children.length) lb.innerHTML = '<div class="wp-lrow" style="color:rgba(255,255,255,.18)">No orbs collected yet — explore!</div>';
+    }
+
+    function rebuildPeerSelect() {
+      const sel = document.getElementById('xfer-to'); const prev = sel.value;
+      sel.innerHTML = '<option value="">— select recipient —</option>';
+      for (const [, e] of remotes) { if (!e.pk) continue; const opt = document.createElement('option'); opt.value = e.pk; opt.textContent = `${e.ghost.nmEl.textContent || 'Unknown'} (${e.shortId || e.pk.slice(-6)})`; sel.appendChild(opt) }
+      if (prev) sel.value = prev;
+    }
+
+    function showOrbToast(type) {
+      const t = document.getElementById('orb-toast');
+      t.textContent = `${ORB_EMOJI[type]} +1 ${type} orb`;
+      t.style.borderColor = ORB_CSS_COL[type] + '55'; t.style.background = ORB_CSS_COL[type] + '16';
+      t.classList.add('show'); clearTimeout(t._timer); t._timer = setTimeout(() => t.classList.remove('show'), 2400);
+    }
+
+    function showSyncBadge() {
+      const el = document.getElementById('sync-badge');
+      el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2500);
+    }
+
+    function setWpStatus(msg, cls = '') { const el = document.getElementById('wp-status'); el.textContent = msg; el.className = 'wp-status' + (cls ? ' ' + cls : '') }
+
+    // Wallet phrase reveal
+    let phraseRevealed = false;
+    document.getElementById('wp-phrase-toggle').onclick = () => {
+      phraseRevealed = !phraseRevealed;
+      const words = document.getElementById('wp-phrase-words');
+      const copy = document.getElementById('wp-phrase-copy');
+      const warn = document.getElementById('wp-phrase-warn');
+      const icon = document.getElementById('wp-phrase-icon');
+      if (phraseRevealed) {
+        words.innerHTML = '';
+        myPhrase.split(' ').forEach((w, i) => {
+          const d = document.createElement('div'); d.className = 'wp-pw';
+          d.innerHTML = `<span class="wp-pw-n">${i + 1}</span><span class="wp-pw-w">${w}</span>`;
+          words.appendChild(d);
+        });
+        words.classList.add('show'); copy.classList.add('show'); warn.classList.add('show');
+        icon.textContent = '▼ Hide';
+      } else {
+        words.classList.remove('show'); copy.classList.remove('show'); warn.classList.remove('show');
+        icon.textContent = '▶ Reveal';
+      }
+    };
+    document.getElementById('wp-phrase-copy').onclick = () => copyText(myPhrase);
+
+    document.getElementById('hp-wallet').onclick = () => { updateWalletPanel(); openPanel(walletPanel) };
+    document.getElementById('wp-close').onclick = closePanel;
+
+    document.getElementById('wp-send').onclick = async () => {
+      const toPK = document.getElementById('xfer-to').value;
+      if (!toPK) { setWpStatus('Select a recipient first.', 'warn'); return }
+      const amount = { common: parseInt(document.getElementById('xfer-c').value) || 0, uncommon: parseInt(document.getElementById('xfer-u').value) || 0, rare: parseInt(document.getElementById('xfer-r').value) || 0 };
+      const total = ORB_TYPES.reduce((s, k) => s + amount[k], 0);
+      if (total === 0) { setWpStatus('Enter orbs to send.', 'warn'); return }
+      const bal = getBalance(myPK);
+      for (const k of ORB_TYPES) if (amount[k] > bal[k]) { setWpStatus(`Insufficient ${k} orbs.`, 'err'); return }
+      setWpStatus('Signing transaction…');
+      try {
+        const tx = await buildTransferTx(toPK, amount);
+        const ok = await applyTx(tx, true);
+        if (ok) { setWpStatus('✓ Transfer sent & verified!', 'ok');['xfer-c', 'xfer-u', 'xfer-r'].forEach(id => document.getElementById(id).value = 0); updateWalletPanel() }
+        else setWpStatus('Transfer rejected — check balance.', 'err');
+      } catch (err) { setWpStatus('Signing failed: ' + err.message, 'err') }
+    };
+    ['xfer-c', 'xfer-u', 'xfer-r', 'xfer-to'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('keydown', e => e.stopPropagation()) });
+
+    // ─── PERSISTENCE ──────────────────────────────────────────────────────────────
+    // Profile is stored BOTH generically (for fast load on same device) AND
+    // keyed by shortId (for cross-device recovery via seed phrase).
+    let myName = localStorage.getItem('sd-name') || '';
+    let myGlow = localStorage.getItem('sd-glow') || 'orange';
+    let myEye = localStorage.getItem('sd-eye') || 'green';
+    const isReturning = !!localStorage.getItem('sd-phrase');
+    if (!myName) myName = rndName();
+
+    // Save profile — always writes both generic key AND identity-specific key
+    const save = () => {
+      localStorage.setItem('sd-name', myName);
+      localStorage.setItem('sd-glow', myGlow);
+      localStorage.setItem('sd-eye', myEye);
+      // Key by shortId so cross-device recovery can restore appearance
+      if (myShortId) {
+        localStorage.setItem(`sd-profile-${myShortId}`, JSON.stringify({ name: myName, glow: myGlow, eye: myEye }));
+      }
+    };
+
+    // Load profile for a specific identity (used after seed phrase recovery)
+    function loadProfileForId(shortId) {
+      try { const raw = localStorage.getItem(`sd-profile-${shortId}`); if (raw) return JSON.parse(raw) } catch { }
+      return null;
+    }
+
+    // ── Claim sync-lock: prevents claiming orbs before network ledger is received ─
+    // Set to Date.now() + N ms on fresh/recovered sessions. checkClaims() respects this.
+    let claimLockUntil = 0;
+    const SYNC_WINDOW_MS = 10000; // 10 seconds to receive peer ledgers
+
+    function showSyncLockBanner() {
+      const el = document.getElementById('sync-lock-banner');
+      el.classList.add('show');
+      // Update countdown
+      const tick = () => {
+        const rem = Math.ceil((claimLockUntil - Date.now()) / 1000);
+        if (rem <= 0) { el.classList.remove('show'); return }
+        el.textContent = `⟳ Syncing your orbs from the network… (${rem}s)`;
+        setTimeout(tick, 500);
+      };
+      tick();
+    }
+
+    // ─── LOADER / SETUP UI ────────────────────────────────────────────────────────
+    const loader = document.getElementById('loader');
+    const ldstatus = document.getElementById('ldstatus');
+    const setup = document.getElementById('setup');
+    let sfGlow = myGlow, sfEye = myEye;
+
+    function buildSwInto(containerId, cur, onPick) {
+      const el = document.getElementById(containerId); el.innerHTML = '';
+      CK.forEach(k => { const s = document.createElement('div'); s.className = 'sw' + (k === cur ? ' on' : ''); s.style.cssText = `background:${CSS_C[k]};box-shadow:0 0 5px ${CSS_C[k]}55`; s.title = k; s.onclick = () => { el.querySelectorAll('.sw').forEach(x => x.classList.remove('on')); s.classList.add('on'); onPick(k) }; el.appendChild(s) });
+    }
+
+    function fadeLoader() { loader.classList.add('fade'); setTimeout(() => loader.style.display = 'none', 750) }
+
+    function copyText(txt) {
+      navigator.clipboard.writeText(txt).catch(() => { const ta = document.createElement('textarea'); ta.value = txt; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove() });
+    }
+
+    function renderSetupPhrase(phrase) {
+      const grid = document.getElementById('sf-words-grid'); grid.innerHTML = '';
+      phrase.split(' ').forEach((w, i) => {
+        const d = document.createElement('div'); d.className = 'sf-word';
+        d.innerHTML = `<span class="sf-word-num">${i + 1}</span><span class="sf-word-val">${w}</span>`;
+        grid.appendChild(d);
+      });
+    }
+
+    // Setup recovery flow
+    document.getElementById('sf-recover-toggle').onclick = () => {
+      const box = document.getElementById('sf-recover-box');
+      box.classList.toggle('show');
+    };
+
+    document.getElementById('sf-recover-btn').onclick = async () => {
+      const phrase = document.getElementById('sf-recover-input').value.trim().toLowerCase();
+      const errEl = document.getElementById('sf-recover-err');
+      errEl.textContent = '';
+      try {
+        validatePhrase(phrase);
+        ldstatus.textContent = 'Deriving identity…'; ldstatus.style.display = '';
+        // Derive keypair from phrase
+        myKP = await seedPhraseToKeypair(phrase);
+        myPK = buf2b64(await crypto.subtle.exportKey('spki', myKP.publicKey));
+        myPhrase = phrase;
+        myShortId = (await sha256hex(myPK)).slice(0, 8).toUpperCase();
+        document.getElementById('wp-idval').textContent = myShortId;
+        localStorage.setItem('sd-phrase', phrase);
+
+        // ── KEY FIX 1: Restore profile keyed to this identity ──
+        const savedProfile = loadProfileForId(myShortId);
+        if (savedProfile) {
+          // Profile found — restore name/glow/eye automatically
+          myName = savedProfile.name || myName;
+          myGlow = savedProfile.glow || myGlow;
+          myEye = savedProfile.eye || myEye;
+          sfGlow = myGlow; sfEye = myEye;
+          // Show the "profile restored" card, hide name/color pickers
+          document.getElementById('sf-profile-found').classList.add('show');
+          document.getElementById('sf-profile-found-row').textContent = `Name: ${myName}  ·  ID: ${myShortId}`;
+          // Pre-fill name input just in case
+          document.getElementById('sf-name').value = myName;
+          // Rebuild color swatches to reflect restored colors
+          buildSwInto('sf-glowsw', myGlow, k => sfGlow = k);
+          buildSwInto('sf-eyesw', myEye, k => sfEye = k);
+        } else {
+          // Cross-device recovery — no profile found locally; let user set name/colors
+          document.getElementById('sf-name').value = '';
+          document.getElementById('sf-name').placeholder = `Spirit #${myShortId} — enter a name…`;
+        }
+
+        // ── KEY FIX 2: Set sync lock so we don't claim orbs before network sync ──
+        claimLockUntil = Date.now() + SYNC_WINDOW_MS;
+
+        // Hide phrase section (they're restoring, not creating)
+        document.getElementById('sf-phrase-section').style.display = 'none';
+        document.getElementById('sf-enter').disabled = false;
+        document.getElementById('sf-recover-box').classList.remove('show');
+        ldstatus.textContent = savedProfile ? `Welcome back, ${myName}! ✓` : `Identity ${myShortId} restored ✓`;
+        setTimeout(() => ldstatus.style.display = 'none', 1800);
+
+        // Replay local ledger now that we have the right key (sorted by time)
+        const localTxs = loadPersistedLedger();
+        localTxs.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+        for (const tx of localTxs) {
+          if (txSet.has(tx.id)) continue;
+          const verdict = await validateTx(tx);
+          if (verdict === 'ok') { ledger.push(tx); txSet.add(tx.id); if (tx.type === 'claim') { const orb = orbDefs[tx.orbId]; if (orb) orb.claimed = true } }
+        }
+        updateWalletHUD();
+      } catch (e) { errEl.textContent = '⚠ ' + e.message; ldstatus.style.display = 'none' }
+    };
+    document.getElementById('sf-recover-input').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') document.getElementById('sf-recover-btn').click() });
+    document.getElementById('sf-copy-phrase').onclick = () => copyText(myPhrase);
+
+    if (!isReturning) {
+      // Show setup with seed phrase for new users
+      document.getElementById('sf-name').value = myName;
+      buildSwInto('sf-glowsw', myGlow, k => sfGlow = k);
+      buildSwInto('sf-eyesw', myEye, k => sfEye = k);
+      ldstatus.style.display = 'none';
+      // Phrase will be rendered after crypto init (done below)
+      document.getElementById('sf-phrase-section').style.display = 'block';
+      document.getElementById('sf-enter').disabled = true; // require checkbox
+      setup.classList.add('show');
+      document.getElementById('sf-rnd').onclick = () => document.getElementById('sf-name').value = rndName();
+      document.getElementById('sf-enter').onclick = () => {
+        const n = document.getElementById('sf-name').value.trim() || rndName();
+        localStorage.setItem('sd-phrase', myPhrase);
+        fadeLoader();
+        // enterGame applies final colors — sfGlow/sfEye are live-updated by swatch clicks
+        enterGame(n, sfGlow, sfEye);
+      };
+      document.getElementById('sf-name').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter' && !document.getElementById('sf-enter').disabled) document.getElementById('sf-enter').click() });
+    } else {
+      // Returning user — profile already loaded, enter world automatically
+      ldstatus.textContent = `Welcome back, ${myName}`;
+      setTimeout(() => { fadeLoader(); enterGame(myName, myGlow, myEye); }, 800);
+    }
+
+    // ─── HUD ─────────────────────────────────────────────────────────────────────
+    const hpDot = document.getElementById('hp-dot');
+    const hpConnLabel = document.getElementById('hp-connlabel');
+    const hpConnWrap = document.getElementById('hp-conn-wrap');
+    const hpN = document.getElementById('hp-n');
+    const hpXyz = document.getElementById('hp-xyz');
+    const copyTip = document.getElementById('copytip');
+    let connCopyable = false;
+
+    hpConnWrap.onclick = () => {
+      if (!connCopyable) return;
+      copyText(location.href);
+      copyTip.classList.add('show'); clearTimeout(hpConnWrap._ct); hpConnWrap._ct = setTimeout(() => copyTip.classList.remove('show'), 2000);
+    };
+    function setConn(label, state) { hpConnLabel.textContent = label; hpDot.className = 'hp-dot ' + (state === 'ok' || state === 'copy' ? 'ok' : 'bad pulse'); connCopyable = state === 'copy'; hpConnWrap.title = state === 'copy' ? 'Copy invite link' : ''; hpConnWrap.style.color = state === 'copy' ? 'rgba(0,200,100,.75)' : '' }
+    function setCount(n) { hpN.textContent = n }
+
+    let sendState = () => { }, sendChat = () => { }, sendHello = () => { }, sendTx = () => { };
+    let roomRef = null;
+
+    // ─── AUDIO ────────────────────────────────────────────────────────────────────
+    let audioCtx = null, localStream = null, micMuted = false;
+    const pendingStreams = new Map();
+    const VOICE_RANGE = 12, VOICE_FULL = 2;
+    function ensureAudioCtx() { if (audioCtx) return; audioCtx = new (window.AudioContext || window.webkitAudioContext)() }
+    function distToGain(d) { if (d <= VOICE_FULL) return 1; if (d >= VOICE_RANGE) return 0; const t = (d - VOICE_FULL) / (VOICE_RANGE - VOICE_FULL); return Math.max(0, Math.min(1, (1 - t) * (1 - t))) }
+    function attachStream(e, stream) {
+      if (e.audioEl) { e.audioEl.srcObject = null; e.audioEl.remove() }
+      try { if (e.analyser) e.analyser.disconnect() } catch (_) { }
+      try { if (e.audioSrc) e.audioSrc.disconnect() } catch (_) { }
+      const audio = new Audio(); audio.srcObject = stream; audio.autoplay = true; audio.volume = 0;
+      audio.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none';
+      document.body.appendChild(audio); audio.play().catch(() => { }); e.audioEl = audio;
+      ensureAudioCtx();
+      try { const src = audioCtx.createMediaStreamSource(stream); const analyser = audioCtx.createAnalyser(); analyser.fftSize = 512; src.connect(analyser); e.audioSrc = src; e.analyser = analyser; e._speakBuf = new Uint8Array(analyser.frequencyBinCount) } catch (_) { }
+    }
+    function isSpeaking(e) {
+      if (!e.analyser || !e._speakBuf) return false;
+      e.analyser.getByteTimeDomainData(e._speakBuf); let sum = 0;
+      for (let i = 0; i < e._speakBuf.length; i++) { const v = e._speakBuf[i] / 128 - 1; sum += v * v }
+      return (sum / e._speakBuf.length) > 0.003;
+    }
+
+    // ─── THREE.JS SCENE ───────────────────────────────────────────────────────────
+    const scene = new THREE.Scene(); scene.background = new THREE.Color(0x000000); scene.fog = new THREE.FogExp2(0x000000, .009);
+    const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, .1, 600); camera.position.set(0, 0, 22);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    renderer.setClearColor(0x000000, 1); renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = .88;
+    renderer.domElement.style.zIndex = '1'; document.body.appendChild(renderer.domElement);
+    const labelRen = new CSS2DRenderer(); labelRen.setSize(innerWidth, innerHeight);
+    labelRen.domElement.style.cssText = 'position:fixed;top:0;left:0;z-index:10;pointer-events:none'; document.body.appendChild(labelRen.domElement);
+    const composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera));
+    const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .35, 1.0, 0); composer.addPass(bloom); composer.addPass(new OutputPass());
+    scene.add(new THREE.AmbientLight(0x0a0a2e, .1));
+    const rl1 = new THREE.DirectionalLight(0x4a90e2, .65); rl1.position.set(-8, 6, 4); scene.add(rl1);
+    const rl2 = new THREE.DirectionalLight(0x50e3c2, .4); rl2.position.set(8, -4, 2); scene.add(rl2);
+    const FFLY = [];
+    for (let i = 0; i < 18; i++) { const ckeys = ['cyan', 'teal', 'violet', 'purple', 'lime', 'pink']; const c = PAL[ckeys[i % ckeys.length]]; const mat = new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: .7 }); const orb = new THREE.Mesh(new THREE.SphereGeometry(.05, 4, 4), mat); const bx = (Math.random() - .5) * WORLD * 1.8, by = (Math.random() - .5) * 16, bz = (Math.random() - .5) * 14; orb.position.set(bx, by, bz); scene.add(orb); FFLY.push({ orb, mat, bx, by, bz, phase: Math.random() * Math.PI * 2, spd: .5 + Math.random() * 1.2, vel: new THREE.Vector3((Math.random() - .5) * .018, (Math.random() - .5) * .018, (Math.random() - .5) * .009) }) }
+    const fill = new THREE.PointLight(0x4488ff, .35, 90, 1.5); fill.position.set(0, 0, 10); scene.add(fill);
+
+    // ─── GHOST FACTORY ────────────────────────────────────────────────────────────
+    const GGEO = (() => { const g = new THREE.SphereGeometry(2, 20, 20); const p = g.getAttribute('position').array; for (let i = 0; i < p.length; i += 3)if (p[i + 1] < -.2) { const x = p[i], z = p[i + 2]; p[i + 1] = -2 + Math.sin(x * 5) * .35 + Math.cos(z * 4) * .25 + Math.sin((x + z) * 3) * .15 } g.computeVertexNormals(); return g })();
+    function mkGhost(gk, ek) {
+      const gc = PAL[gk] ?? PAL.orange, ec = PAL[ek] ?? PAL.green; const grp = new THREE.Group();
+      const bMat = new THREE.MeshStandardMaterial({ color: 0x0f2027, emissive: new THREE.Color(gc), emissiveIntensity: 5.5, transparent: true, opacity: .88, roughness: .02, side: THREE.DoubleSide });
+      const body = new THREE.Mesh(GGEO, bMat); grp.add(body);
+      const skG = new THREE.SphereGeometry(.42, 10, 10), skM = new THREE.MeshBasicMaterial({ color: 0 });
+      for (const [x, y, z] of [[-0.7, .6, 1.88], [0.7, .6, 1.88]]) { const s = new THREE.Mesh(skG, skM); s.position.set(x, y, z); s.scale.set(1.1, 1, .6); grp.add(s) }
+      const eGeo = new THREE.SphereGeometry(.28, 8, 8), eMats = [];
+      for (const [x, y, z] of [[-0.7, .6, 2.05], [0.7, .6, 2.05]]) { const m = new THREE.MeshBasicMaterial({ color: ec, transparent: true, opacity: .1 }); eMats.push(m); const msh = new THREE.Mesh(eGeo, m); msh.position.set(x, y, z); grp.add(msh) }
+      const oGeo = new THREE.SphereGeometry(.48, 8, 8), oMats = [];
+      for (const [x, y, z] of [[-0.7, .6, 2.0], [0.7, .6, 2.0]]) { const m = new THREE.MeshBasicMaterial({ color: ec, transparent: true, opacity: .03, side: THREE.BackSide }); oMats.push(m); const msh = new THREE.Mesh(oGeo, m); msh.position.set(x, y, z); grp.add(msh) }
+      const lDiv = document.createElement('div'); lDiv.className = 'glabel'; const msgEl = document.createElement('div'); msgEl.className = 'gmsg'; const nmEl = document.createElement('div'); nmEl.className = 'gname'; lDiv.appendChild(msgEl); lDiv.appendChild(nmEl);
+      const lObj = new CSS2DObject(lDiv); lObj.position.set(0, 3.5, 0); grp.add(lObj);
+      return { grp, body, bMat, eMats, oMats, nmEl, msgEl, _mt: null };
+    }
+    function setColors(g, gk, ek) { g.bMat.emissive.set(PAL[gk] ?? PAL.orange); const c = new THREE.Color(PAL[ek] ?? PAL.green);[...g.eMats, ...g.oMats].forEach(m => m.color.copy(c)) }
+    function showMsg(g, txt) { g.msgEl.textContent = txt; g.msgEl.style.display = 'block'; g.msgEl.style.animation = 'none'; void g.msgEl.offsetWidth; g.msgEl.style.animation = ''; clearTimeout(g._mt); g._mt = setTimeout(() => g.msgEl.style.display = 'none', MSG_LIFE) }
+
+    // ─── LOCAL PLAYER ─────────────────────────────────────────────────────────────
+    // Ghost is created lazily in enterGame() with final chosen colors.
+    // Declared here so other functions can reference it.
+    let local;
+    const pos = new THREE.Vector2(+localStorage.getItem('sd-x') || 0, +localStorage.getItem('sd-y') || 0);
+    const camPos = new THREE.Vector2(pos.x, pos.y);
+    let moveDir = new THREE.Vector2(), eyeLit = 0;
+    const micBtn = document.getElementById('hp-mic'), micLabelEl = document.getElementById('hp-miclabel');
+    function setMicState(state) { micBtn.className = 'hp-seg clickable' + (state !== 'off' ? ' ' + state : ''); micLabelEl.textContent = state === 'waiting' ? 'Asking…' : state === 'live' ? 'Live' : state === 'muted' ? 'Muted' : 'Voice' }
+    async function toggleMic() {
+      ensureAudioCtx(); if (audioCtx.state === 'suspended') await audioCtx.resume();
+      if (!localStream) { setMicState('waiting'); try { localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false }); micMuted = false; setMicState('live'); if (roomRef) roomRef.addStream(localStream) } catch { localStream = null; setMicState('off') } return }
+      micMuted = !micMuted; localStream.getAudioTracks().forEach(t => t.enabled = !micMuted); setMicState(micMuted ? 'muted' : 'live');
+    }
+    micBtn.onclick = toggleMic;
+    document.getElementById('hp-coord').onclick = openTpPanel;
+    document.getElementById('hp-cust').onclick = openCustPanel;
+
+    // ─── TELEPORT ────────────────────────────────────────────────────────────────
+    const tpFlash = document.getElementById('tpflash'); let tpActive = false;
+    function doTeleport(tx, ty) {
+      if (tpActive) return; tpActive = true; tpFlash.classList.add('pop');
+      setTimeout(() => { pos.x = tx; pos.y = ty; camPos.x = tx; camPos.y = ty; camera.position.x = tx; camera.position.y = ty; local.grp.position.set(tx, ty, 0); sendState(myState()); localStorage.setItem('sd-x', pos.x); localStorage.setItem('sd-y', pos.y); setTimeout(() => { tpFlash.classList.remove('pop'); tpActive = false }, 300) }, 90);
+    }
+
+    // ─── PANEL HELPERS ────────────────────────────────────────────────────────────
+    const scrim = document.getElementById('scrim');
+    const tpPanel = document.getElementById('tppanel');
+    const custPanel = document.getElementById('custpanel');
+    const walletPanel = document.getElementById('walletpanel');
+    const allPanels = [tpPanel, custPanel, walletPanel];
+    function openPanel(panel) { allPanels.forEach(p => p.classList.remove('open')); panel.classList.add('open'); scrim.classList.add('show') }
+    function closePanel() { allPanels.forEach(p => p.classList.remove('open')); scrim.classList.remove('show') }
+    scrim.onclick = closePanel;
+
+    const tpx = document.getElementById('tpx'), tpy = document.getElementById('tpy'), tpdist = document.getElementById('tpdist');
+    function openTpPanel() { tpx.value = Math.round(pos.x); tpy.value = Math.round(pos.y); updDist(); openPanel(tpPanel) }
+    function updDist() { const tx = parseFloat(tpx.value) || 0, ty = parseFloat(tpy.value) || 0; const d = Math.hypot(tx - pos.x, ty - pos.y); tpdist.textContent = `${Math.round(pos.x)}, ${Math.round(pos.y)}  →  ${Math.round(tx)}, ${Math.round(ty)}  ·  Δ ${Math.round(d)}` }
+    tpx.addEventListener('input', updDist); tpy.addEventListener('input', updDist);
+    [tpx, tpy].forEach(inp => inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') document.getElementById('tpgo').click(); if (e.key === 'Escape') closePanel() }));
+    document.getElementById('tpgo').onclick = () => { const tx = parseFloat(tpx.value) || 0, ty = parseFloat(tpy.value) || 0; closePanel(); doTeleport(tx, ty) };
+    document.getElementById('tpcancel').onclick = closePanel;
+
+    const mmc = document.getElementById('mm'), R_MM = 60;
+    mmc.addEventListener('mouseleave', () => mmPreview = null);
+    function parseTp(txt) { const m = txt.match(/^\/(tp|goto|teleport)\s+(-?[\d.]+)\s+(-?[\d.]+)/i); return m ? { x: parseFloat(m[2]), y: parseFloat(m[3]) } : null }
+
+    let cpGlow = myGlow, cpEye = myEye;
+    function buildSwPanel(cid, cur, onPick) { const el = document.getElementById(cid); el.innerHTML = ''; CK.forEach(k => { const s = document.createElement('div'); s.className = 'sw' + (k === cur ? ' on' : ''); s.style.cssText = `background:${CSS_C[k]};box-shadow:0 0 5px ${CSS_C[k]}55`; s.title = k; s.onclick = () => { el.querySelectorAll('.sw').forEach(x => x.classList.remove('on')); s.classList.add('on'); onPick(k) }; el.appendChild(s) }) }
+    function openCustPanel() { cpGlow = myGlow; cpEye = myEye; document.getElementById('cp-name').value = myName; buildSwPanel('cp-glowsw', myGlow, k => cpGlow = k); buildSwPanel('cp-eyesw', myEye, k => cpEye = k); openPanel(custPanel) }
+    document.getElementById('cp-rnd').onclick = () => document.getElementById('cp-name').value = rndName();
+    document.getElementById('cp-save').onclick = () => { const n = document.getElementById('cp-name').value.trim(); myName = n || rndName(); myGlow = cpGlow; myEye = cpEye; save(); setColors(local, myGlow, myEye); local.nmEl.textContent = myName; sendHello({ ...myState(), pk: myPK, sid: myShortId }); closePanel() };
+
+    bootstrap();
+
+    // ─── REMOTES ─────────────────────────────────────────────────────────────────
+    const remotes = new Map();
+    function getOrCreate(id, d) {
+      if (remotes.has(id)) return remotes.get(id);
+      if (remotes.size >= 60) return null;
+      const g = mkGhost(d.glow || 'cyan', d.eye || 'teal'); g.nmEl.textContent = d.name || 'Unknown Spirit'; g.grp.position.set(d.x || 0, d.y || 0, 0); scene.add(g.grp);
+      const e = { ghost: g, tx: d.x || 0, ty: d.y || 0, glow: d.glow || 'cyan', eye: d.eye || 'teal', lx: d.x || 0, ly: d.y || 0, pk: d.pk || null, shortId: d.sid || null };
+      remotes.set(id, e); refreshCount(); return e;
+    }
+    function applyState(id, d) {
+      const e = getOrCreate(id, d); if (!e) return;
+      if (d.x != null) e.tx = d.x; if (d.y != null) e.ty = d.y;
+      if (d.name) e.ghost.nmEl.textContent = d.name; if (d.pk) e.pk = d.pk; if (d.sid) e.shortId = d.sid;
+      if (d.pk) lastSeen.set(d.pk, Date.now()); // update last-seen on every state packet
+      if ((d.glow && d.glow !== e.glow) || (d.eye && d.eye !== e.eye)) { setColors(e.ghost, d.glow || e.glow, d.eye || e.eye); e.glow = d.glow || e.glow; e.eye = d.eye || e.eye }
+    }
+    function dropPeer(id) {
+      const e = remotes.get(id); if (!e) return;
+      if (e.audioEl) { e.audioEl.srcObject = null; e.audioEl.remove() }
+      try { if (e.audioSrc) e.audioSrc.disconnect() } catch (_) { }
+      try { if (e.analyser) e.analyser.disconnect() } catch (_) { }
+      scene.remove(e.ghost.grp); remotes.delete(id); refreshCount();
+    }
+    function refreshCount() { setCount(remotes.size + 1) }
+    const myState = (ex = {}) => ({ x: +pos.x.toFixed(1), y: +pos.y.toFixed(1), name: myName, glow: myGlow, eye: myEye, ...ex });
+    setInterval(() => { localStorage.setItem('sd-x', pos.x); localStorage.setItem('sd-y', pos.y) }, 3000);
+
+    // ─── P2P ─────────────────────────────────────────────────────────────────────
+    function initP2P() {
+      try {
+        const room = joinRoom({ appId: 'spectral-drift-ghost-world-v3', relayRedundancy: 2, trackerUrls: ['wss://tracker.openwebtorrent.com', 'wss://tracker.webtorrent.dev'] }, ROOM_ID);
+        roomRef = room;
+        const [_sendState, onState] = room.makeAction('s');
+        const [_sendChat, onChat] = room.makeAction('c');
+        const [_sendHello, onHello] = room.makeAction('h');
+        const [_sendTx, onTx] = room.makeAction('tx');
+        const [_sendLedger, onLedger] = room.makeAction('ld');   // full ledger sync
+        const [_reqLedger, onReqLedger] = room.makeAction('rl'); // request ledger from peer
+        sendState = _sendState; sendChat = _sendChat; sendHello = _sendHello; sendTx = _sendTx;
+
+        room.onPeerJoin(id => {
+          setConn('Connected', 'ok');
+          sendHello({ ...myState(), pk: myPK, sid: myShortId }, id);
+          // Send our full ledger to new peer — they will merge and validate each tx
+          if (ledger.length) {
+            // Send in chunks of 200 to avoid message size limits
+            const CHUNK = 200;
+            for (let i = 0; i < ledger.length; i += CHUNK) {
+              _sendLedger({ txs: ledger.slice(i, i + CHUNK), total: ledger.length, chunk: Math.floor(i / CHUNK) }, id);
+            }
+          }
+          if (localStream) room.addStream(localStream, id);
+        });
+
+        room.onPeerLeave(id => { dropPeer(id); pendingStreams.delete(id); if (remotes.size === 0) setConn('Alone — share link', 'copy') });
+
+        onHello((d, id) => {
+          applyState(id, d);
+          if (pendingStreams.has(id)) { const e = remotes.get(id); if (e) { attachStream(e, pendingStreams.get(id)); pendingStreams.delete(id) } }
+        });
+        onState((d, id) => applyState(id, d));
+        onChat((d, id) => { const e = remotes.get(id); if (e) showMsg(e.ghost, d.m) });
+
+        // Single transaction from peer
+        onTx(async (tx) => { await applyTx(tx, false) });
+
+        // Ledger chunk from peer — process each tx, show sync badge when done
+        onLedger(async (data) => {
+          if (!data || !Array.isArray(data.txs)) return;
+          let added = 0;
+          for (const tx of data.txs) { const ok = await applyTx(tx, false); if (ok) added++ }
+          if (added > 0) {
+            showSyncBadge();
+            updateWalletHUD();
+            // Update ghost mesh appearance now that we have the right picture of the world
+            local.nmEl.textContent = myName;
+            setColors(local, myGlow, myEye);
+          }
+          // If we received a substantial ledger, clear the sync lock early —
+          // we now have enough data to safely allow claims
+          if (added > 5 && claimLockUntil > Date.now()) {
+            claimLockUntil = Date.now() + 1500; // 1.5s more then done
+          }
+        });
+
+        room.onPeerStream((stream, id) => { const e = remotes.get(id); if (e) attachStream(e, stream); else pendingStreams.set(id, stream) });
+
+        const myHello = () => ({ ...myState(), pk: myPK, sid: myShortId });
+        setTimeout(() => sendHello(myHello()), 200);
+        setTimeout(() => sendHello(myHello()), 2500);
+        setInterval(() => { sendHello(myHello()); lastSeen.set(myPK, Date.now()); saveLedger() }, 20000);
+        setTimeout(() => { if (remotes.size === 0) setConn('Share link to invite', 'copy') }, 8000);
+      } catch (err) { console.warn('P2P init failed:', err.message); setConn('Solo mode', 'bad') }
+    }
+
+    // ─── INPUT ────────────────────────────────────────────────────────────────────
+    const keys = {};
+    window.addEventListener('keydown', e => { keys[e.code] = true });
+    window.addEventListener('keyup', e => { keys[e.code] = false });
+    window.addEventListener('blur', () => { Object.keys(keys).forEach(k => keys[k] = false); tO = null; tC = null }); // clear on tab switch/focus loss
+    const ci = document.getElementById('chatinput');
+    const isPanelOpen = () => allPanels.some(p => p.classList.contains('open'));
+    const isTyping = () => { const a = document.activeElement; return [ci, tpx, tpy, document.getElementById('cp-name'), document.getElementById('sf-name'), document.getElementById('xfer-c'), document.getElementById('xfer-u'), document.getElementById('xfer-r'), document.getElementById('xfer-to'), document.getElementById('sf-recover-input')].includes(a) };
+    window.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); if (e.key === 'Enter' && !isTyping() && !isPanelOpen()) { e.preventDefault(); ci.focus() } });
+    ci.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { doChat(); ci.blur() } if (e.key === 'Escape') { ci.value = ''; ci.blur() } });
+    document.getElementById('chatsend').onclick = () => { doChat(); ci.blur() };
+    function doChat() { const msg = ci.value.trim(); if (!msg) return; const tp = parseTp(msg); if (tp) { ci.value = ''; doTeleport(tp.x, tp.y); return } ci.value = ''; showMsg(local, msg); sendChat({ m: msg }) }
+
+    let tO = null, tC = null;
+    window.addEventListener('touchstart', e => { if (e.target.closest('#chatbar,#loader,#mmwrap,#tppanel,#custpanel,#walletpanel,#scrim')) return; tO = { x: e.touches[0].clientX, y: e.touches[0].clientY }; tC = { ...tO } }, { passive: true });
+    window.addEventListener('touchmove', e => { if (tO) tC = { x: e.touches[0].clientX, y: e.touches[0].clientY } }, { passive: true });
+    window.addEventListener('touchend', () => { tO = null; tC = null });
+    window.addEventListener('resize', () => { const w = innerWidth, h = innerHeight; camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h); composer.setSize(w, h); labelRen.setSize(w, h); bloom.setSize(w, h) });
+
+    // ─── MINIMAP ──────────────────────────────────────────────────────────────────
+    const mmx = mmc.getContext('2d');
+    const MM = 120, R = 60, mmScale = R / MM_RANGE;
+    let mmTick = 0, mmPreview = null;
+    mmc.addEventListener('mousemove', e => { const rect = mmc.getBoundingClientRect(); const cx = e.clientX - rect.left - R, cy = e.clientY - rect.top - R; mmPreview = Math.hypot(cx, cy) < R - 2 ? { x: cx, y: cy } : null });
+    mmc.addEventListener('mouseleave', () => mmPreview = null);
+
+    function drawMm() {
+      if (++mmTick % 2 !== 0) return;
+      mmx.clearRect(0, 0, MM, MM); mmx.save();
+      mmx.beginPath(); mmx.arc(R, R, R - 1, 0, Math.PI * 2); mmx.clip();
+      mmx.fillStyle = '#07060f'; mmx.fillRect(0, 0, MM, MM);
+      mmx.strokeStyle = 'rgba(255,255,255,0.04)'; mmx.lineWidth = 0.7;
+      const gs = 10 * mmScale, ox = ((pos.x % 10) + 10) % 10 * mmScale, oy = ((pos.y % 10) + 10) % 10 * mmScale;
+      for (let x = R - ox; x >= 0; x -= gs) { mmx.beginPath(); mmx.moveTo(x, 0); mmx.lineTo(x, MM); mmx.stroke() }
+      for (let x = R - ox + gs; x <= MM; x += gs) { mmx.beginPath(); mmx.moveTo(x, 0); mmx.lineTo(x, MM); mmx.stroke() }
+      for (let y = R + oy; y <= MM; y += gs) { mmx.beginPath(); mmx.moveTo(0, y); mmx.lineTo(MM, y); mmx.stroke() }
+      for (let y = R + oy - gs; y >= 0; y -= gs) { mmx.beginPath(); mmx.moveTo(0, y); mmx.lineTo(MM, y); mmx.stroke() }
+      for (const orb of orbDefs) {
+        if (orb.claimed) continue; const dx = orb.x - pos.x, dy = orb.y - pos.y;
+        if (Math.abs(dx) > MM_RANGE || Math.abs(dy) > MM_RANGE) continue;
+        const mx = R + dx * mmScale, my = R - dy * mmScale; if (Math.hypot(mx - R, my - R) > R - 2) continue;
+        mmx.fillStyle = ORB_CSS_COL[orb.type]; mmx.globalAlpha = 0.7; const r = orb.type === 'rare' ? 3 : orb.type === 'uncommon' ? 2.2 : 1.5;
+        mmx.beginPath(); mmx.arc(mx, my, r, 0, Math.PI * 2); mmx.fill(); mmx.globalAlpha = 1;
+      }
+      if (mmPreview) { const sc = MM_RANGE / R, wx = Math.round(pos.x + mmPreview.x * sc), wy = Math.round(pos.y - mmPreview.y * sc); const mx = R + mmPreview.x, my = R + mmPreview.y; mmx.strokeStyle = 'rgba(160,100,255,0.4)'; mmx.lineWidth = 0.8; mmx.setLineDash([2, 3]); mmx.beginPath(); mmx.moveTo(mx, 0); mmx.lineTo(mx, MM); mmx.stroke(); mmx.beginPath(); mmx.moveTo(0, my); mmx.lineTo(MM, my); mmx.stroke(); mmx.setLineDash([]); mmx.fillStyle = 'rgba(160,100,255,0.65)'; mmx.beginPath(); mmx.arc(mx, my, 2.5, 0, Math.PI * 2); mmx.fill(); mmx.fillStyle = 'rgba(200,160,255,0.75)'; mmx.font = 'bold 6px monospace'; mmx.textAlign = 'left'; mmx.fillText(`${wx},${wy}`, mx + 5 < MM - 26 ? mx + 5 : mx - 28, my - 5 > 8 ? my - 4 : my + 11) }
+      for (const [, e] of remotes) { const mx = R + (e.ghost.grp.position.x - pos.x) * mmScale, my = R - (e.ghost.grp.position.y - pos.y) * mmScale; if (Math.hypot(mx - R, my - R) > R - 2) continue; const c = CSS_C[e.glow] || '#fff'; const g = mmx.createRadialGradient(mx, my, 0, mx, my, 8); g.addColorStop(0, c + '66'); g.addColorStop(1, 'transparent'); mmx.fillStyle = g; mmx.beginPath(); mmx.arc(mx, my, 8, 0, Math.PI * 2); mmx.fill(); mmx.fillStyle = c; mmx.beginPath(); mmx.arc(mx, my, 3, 0, Math.PI * 2); mmx.fill(); mmx.fillStyle = 'rgba(255,255,255,0.5)'; mmx.font = 'bold 6px monospace'; mmx.textAlign = 'center'; mmx.fillText((e.ghost.nmEl.textContent || '?')[0].toUpperCase(), mx, my - 6) }
+      drawAdsMm(); // ad ★ markers
+      const lc = CSS_C[myGlow] || '#ff4500'; const pulse = .55 + .45 * Math.sin(Date.now() * .005), pr = 6 + pulse * 4; const lg = mmx.createRadialGradient(R, R, 0, R, R, pr); lg.addColorStop(0, lc + '88'); lg.addColorStop(1, 'transparent'); mmx.fillStyle = lg; mmx.beginPath(); mmx.arc(R, R, pr, 0, Math.PI * 2); mmx.fill(); mmx.fillStyle = lc; mmx.beginPath(); mmx.arc(R, R, 4, 0, Math.PI * 2); mmx.fill(); mmx.fillStyle = '#fff'; mmx.beginPath(); mmx.arc(R, R, 1.6, 0, Math.PI * 2); mmx.fill(); mmx.restore();
+      mmx.beginPath(); mmx.arc(R, R, R - .75, 0, Math.PI * 2); mmx.strokeStyle = 'rgba(255,255,255,0.14)'; mmx.lineWidth = 1.5; mmx.stroke();
+      mmx.fillStyle = 'rgba(255,255,255,0.22)'; mmx.font = 'bold 7px monospace'; mmx.textAlign = 'center'; mmx.fillText('N', R, 9); mmx.fillText('S', R, MM - 1); mmx.textAlign = 'left'; mmx.fillText('E', MM - 8, R + 3); mmx.textAlign = 'right'; mmx.fillText('W', 8, R + 3);
+    }
+
+    // ─── GHOST ANIMATION ──────────────────────────────────────────────────────────
+    function animGhost(g, t, eyeT, lean, cheap) {
+      g.body.position.y = Math.sin(t * 1.6) * .038 + Math.cos(t * .8) * .02;
+      if (!cheap) { g.bMat.emissiveIntensity = 5.5 + Math.sin(t * 2) * .7 + Math.sin(t * .65) * .3; g.body.rotation.z += (-(lean?.x || 0) * .16 - g.body.rotation.z) * .07; g.body.rotation.x += ((lean?.y || 0) * .11 - g.body.rotation.x) * .07; g.body.rotation.y = Math.sin(t * 1.1) * .038; const sc = 1 + Math.sin(t * 2.1) * .016; g.body.scale.set(sc, sc, sc) }
+      const eo = Math.max(0, Math.min(1, eyeT)); g.eMats.forEach(m => m.opacity = eo); if (!cheap) g.oMats.forEach(m => m.opacity = eo * .22);
+    }
+
+    // ─── MAIN LOOP ────────────────────────────────────────────────────────────────
+    let t = 0, lastTS = 0, lastSync = 0;
+    function loop(ts) {
+      requestAnimationFrame(loop);
+      const dt = Math.min((ts - lastTS) / 1000, .05); lastTS = ts; t += dt;
+      let dx = 0, dy = 0;
+      if (!isTyping() && !tpActive && !isPanelOpen()) {
+        if (keys['KeyA'] || keys['ArrowLeft']) dx -= 1; if (keys['KeyD'] || keys['ArrowRight']) dx += 1;
+        if (keys['KeyW'] || keys['ArrowUp']) dy += 1; if (keys['KeyS'] || keys['ArrowDown']) dy -= 1;
+        if (tO && tC) { const tdx = tC.x - tO.x, tdy = tC.y - tO.y, tl = Math.hypot(tdx, tdy); if (tl > 10) { dx += tdx / tl; dy -= tdy / tl } }
+      }
+      const len = Math.hypot(dx, dy);
+      if (len > 0 && !tpActive) { const nx = dx / len, ny = dy / len; moveDir.set(nx, ny); pos.x += nx * SPEED; pos.y += ny * SPEED; eyeLit = Math.min(1, eyeLit + .1); if (ts - lastSync > SYNC_MS) { sendState(myState()); lastSync = ts } }
+      else { eyeLit = Math.max(.05, eyeLit - .025); moveDir.multiplyScalar(.88) }
+      if (mmTick % 10 === 0) { hpXyz.textContent = `X ${Math.round(pos.x)}  Y ${Math.round(pos.y)}`; if (tpPanel.classList.contains('open')) updDist() }
+      local.grp.position.set(pos.x, pos.y, 0); animGhost(local, t, eyeLit, moveDir, false);
+      camPos.x += (pos.x - camPos.x) * .065; camPos.y += (pos.y - camPos.y) * .065; camera.position.x = camPos.x; camera.position.y = camPos.y;
+      for (const orb of orbDefs) {
+        if (orb.claimed || !orb.mesh) continue; const dx = orb.x - pos.x, dy = orb.y - pos.y; const dist2 = dx * dx + dy * dy;
+        orb.mesh.visible = dist2 < ORB_VIS * ORB_VIS; if (!orb.mesh.visible) continue;
+        orb.mesh.position.z = .6 + Math.sin(t * 2 + orb.id * .693) * .3;
+        if (dist2 < 900) { orb.mesh.rotation.y = t * .8 + orb.id * .4; orb.mesh.material.emissiveIntensity = ORB_3D[orb.type].ei + Math.sin(t * 3 + orb.id) * 1.5 }
+      }
+      checkClaims();
+      tickAds(t); // update ad billboard glow + proximity triggers
+      for (const [, e] of remotes) {
+        e.ghost.grp.position.x += (e.tx - e.ghost.grp.position.x) * .12; e.ghost.grp.position.y += (e.ty - e.ghost.grp.position.y) * .12;
+        const dist = Math.hypot(e.tx - pos.x, e.ty - pos.y); const cheap = dist * dist > 900;
+        const mv = Math.hypot(e.tx - (e.lx || 0), e.ty - (e.ly || 0)) > .04; const off = parseFloat('0.' + (e.ghost.nmEl.textContent.charCodeAt(0) || 48));
+        animGhost(e.ghost, t + off, mv ? .65 : .12, { x: 0, y: 0 }, cheap); e.lx = e.ghost.grp.position.x; e.ly = e.ghost.grp.position.y;
+        if (e.audioEl) e.audioEl.volume = distToGain(dist);
+        const speaking = e.audioEl && e.audioEl.volume > 0.01 && isSpeaking(e);
+        if (speaking && !e._speakDot) { const dot = document.createElement('span'); dot.className = 'gspeaking'; e.ghost.nmEl.prepend(dot); e._speakDot = dot }
+        else if (!speaking && e._speakDot) { e._speakDot.remove(); e._speakDot = null }
+      }
+      for (const f of FFLY) { const p = Math.sin(t * f.spd + f.phase); f.mat.opacity = .25 + p * .55; f.vel.x += (Math.random() - .5) * .0006; f.vel.y += (Math.random() - .5) * .0006; f.vel.z += (Math.random() - .5) * .0003; f.vel.clampLength(0, .028); f.orb.position.add(f.vel); const fdx = f.orb.position.x - pos.x, fdy = f.orb.position.y - pos.y; if (Math.abs(fdx) > 22) f.orb.position.x = pos.x - Math.sign(fdx) * 18 + (Math.random() - .5) * 4; if (Math.abs(fdy) > 14) f.orb.position.y = pos.y - Math.sign(fdy) * 10 + (Math.random() - .5) * 4 }
+      composer.render(); labelRen.render(scene, camera); drawMm();
+    }
+
+    // ─── BOOTSTRAP ────────────────────────────────────────────────────────────────
+    async function bootstrap() {
+      // 1. Initialize crypto
+      await initCrypto();
+
+      // 2. Save profile keyed by shortId for cross-device recovery
+      if (isReturning) { save(); }
+
+      // 3. Render seed phrase for new users
+      if (!isReturning) { renderSetupPhrase(myPhrase); }
+
+      // 4. Generate deterministic orb world + ads
+      genOrbDefs();
+      genAdDefs(); // ads placed near orb anchors, same layout on all devices
+
+      // 5. Load and replay persisted ledger — sort by timestamp so oldest claims win
+      loadPersistedLastSeen();
+      lastSeen.set(myPK, Date.now());
+      const savedTxs = loadPersistedLedger();
+      // Sort by timestamp ascending — earlier claims should win in case of conflicts
+      savedTxs.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+      let restoredCount = 0;
+      for (const tx of savedTxs) {
+        if (txSet.has(tx.id)) continue; // already seen
+        const verdict = await validateTx(tx);
+        if (verdict === 'ok') {
+          ledger.push(tx); txSet.add(tx.id);
+          if (tx.type === 'claim') { const orb = orbDefs[tx.orbId]; if (orb) orb.claimed = true }
+          restoredCount++;
+        }
+        // Silently skip races and stale txs — don't punish on restore
+      }
+      if (restoredCount > 0) console.log(`[Ledger] Restored ${restoredCount} transactions from storage`);
+      updateWalletHUD();
+
+      // 6. Build meshes (claimed ones skipped)
+      buildOrbMeshes();
+      buildAdMeshes(); // place billboard signs in world
+
+      // 7. Short sync grace for returning users (3s)
+      if (isReturning) { claimLockUntil = Date.now() + 3000; }
+
+      // 8. Show loader UI — enterGame() called when user clicks "Enter the Void"
+      //    OR auto-called for returning users after brief delay
+    }
+
+    // Called exactly once when the player actually enters the world.
+    // Receives final chosen name/glow/eye so ghost is always correct color.
+    function enterGame(name, glow, eye) {
+      // Apply final identity values
+      myName = name; myGlow = glow; myEye = eye;
+      save();
+
+      // Create local ghost with FINAL colors right now
+      local = mkGhost(myGlow, myEye);
+      local.nmEl.textContent = myName;
+      local.grp.position.set(pos.x, pos.y, 0);
+      scene.add(local.grp);
+
+      // Camera to player position
+      camPos.set(pos.x, pos.y);
+      camera.position.x = pos.x; camera.position.y = pos.y;
+
+      // Show sync-lock banner if in recovery mode
+      if (claimLockUntil > Date.now()) showSyncLockBanner();
+
+      // Start P2P and render loop
+      initP2P();
+      requestAnimationFrame(loop);
+    }
+  </script>
+</body>
+
+</html>
