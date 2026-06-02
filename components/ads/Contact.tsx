@@ -168,7 +168,7 @@ export default function Contact() {
 
               <RevealWrapper delay={2}>
                 <a
-                  href="https://aryansrao.leapcell.app"
+                  href="https://aryansrao.vercel.app"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
@@ -219,7 +219,7 @@ export default function Contact() {
                         letterSpacing: '-0.01em',
                       }}
                     >
-                      aryansrao.leapcell.app
+                      aryansrao.vercel.app
                     </div>
                   </div>
                   <ArrowUpRight

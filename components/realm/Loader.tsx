@@ -1,5 +1,7 @@
 'use client';
 
+import { Key, AlertTriangle, Copy, RefreshCw } from 'lucide-react';
+
 export default function Loader() {
   return (
     <div id="loader">
@@ -20,16 +22,22 @@ export default function Loader() {
         <div id="sf-phrase-section" style={{ width: '100%', marginBottom: '14px', display: 'none' }}>
           <div className="sf-phrase-box">
             <div className="sf-phrase-hdr">
-              <span className="sf-phrase-hdr-icon">🔑</span>
+              <span className="sf-phrase-hdr-icon">
+                <Key size={16} color="rgba(255,204,0,0.8)" />
+              </span>
               <div>
                 <div className="sf-phrase-title">Your Recovery Phrase</div>
-                <div className="sf-phrase-warn">
-                  ⚠ Write these 12 words down. They are the only way to recover your orbs on another device.
+                <div className="sf-phrase-warn" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <AlertTriangle size={10} color="rgba(255,160,0,0.7)" style={{ flexShrink: 0 }} />
+                  Write these 12 words down. They are the only way to recover your orbs on another device.
                 </div>
               </div>
             </div>
             <div className="sf-words" id="sf-words-grid"></div>
-            <button className="sf-copy-phrase" id="sf-copy-phrase">⬡ Copy all 12 words</button>
+            <button className="sf-copy-phrase" id="sf-copy-phrase" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Copy size={10} />
+              Copy all 12 words
+            </button>
             <label className="sf-confirm" id="sf-confirm-label">
               <input
                 type="checkbox"
@@ -52,7 +60,10 @@ export default function Loader() {
           Already have a recovery phrase? Restore identity →
         </div>
         <div id="sf-recover-box">
-          <div className="sf-recover-title">🔑 Restore from Seed Phrase</div>
+          <div className="sf-recover-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Key size={12} color="rgba(140,110,255,0.7)" />
+            Restore from Seed Phrase
+          </div>
           <textarea
             id="sf-recover-input"
             placeholder="Enter your 12 words separated by spaces…"
@@ -82,7 +93,9 @@ export default function Loader() {
               placeholder="Leave blank for random…"
               autoComplete="off"
             />
-            <button className="sf-rnd" id="sf-rnd">⟳</button>
+            <button className="sf-rnd" id="sf-rnd" title="Random name">
+              <RefreshCw size={12} />
+            </button>
           </div>
         </div>
         <div className="sf-cols">
@@ -95,7 +108,7 @@ export default function Loader() {
             <div className="swgrid" id="sf-eyesw"></div>
           </div>
         </div>
-        <button className="sf-enter" id="sf-enter">✦ Enter the Void</button>
+        <button className="sf-enter" id="sf-enter">Enter the Void →</button>
       </div>
     </div>
   );

@@ -113,7 +113,7 @@ export default function Nav() {
           ))}
           <li className="hidden sm:block">
             <a
-              href="https://aryansrao.leapcell.app"
+              href="https://aryansrao.vercel.app"
               target="_blank"
               rel="noopener noreferrer"
               style={{

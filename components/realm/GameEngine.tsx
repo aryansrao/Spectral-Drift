@@ -93,7 +93,8 @@ export default function GameEngine() {
         rare:     { hex: 0xcc8800, emit: 0xffcc00, r: .54, ei: 6.5 },
       };
       const ORB_CSS_COL: Record<OrbType, string> = { common: '#00ff88', uncommon: '#66aaff', rare: '#ffcc00' };
-      const ORB_EMOJI: Record<OrbType, string> = { common: '🟢', uncommon: '🔵', rare: '🌟' };
+      const ORB_EMOJI: Record<OrbType, string> = { common: '●', uncommon: '●', rare: '◆' };
+      const ORB_EMOJI_COL: Record<OrbType, string> = { common: '#00ff88', uncommon: '#66aaff', rare: '#ffcc00' };
 
       interface OrbDef {
         id: number; type: OrbType; x: number; y: number;
@@ -384,7 +385,7 @@ export default function GameEngine() {
         const $iw = document.getElementById('wp-inworld-row'), $h = document.getElementById('wp-held-row'), $l = document.getElementById('wp-lost-row');
         function chipRow(el: HTMLElement | null, c: number, u: number, r: number) {
           if (!el) return; const tot = c + u + r;
-          el.innerHTML = `<span class="wp-stat-chip c">🟢${c}</span><span class="wp-stat-chip u">🔵${u}</span><span class="wp-stat-chip r">🌟${r}</span><span class="wp-stat-chip total">(${tot})</span>`;
+          el.innerHTML = `<span class="wp-stat-chip c"><span style="color:#00ff88">●</span> ${c}</span><span class="wp-stat-chip u"><span style="color:#66aaff">●</span> ${u}</span><span class="wp-stat-chip r"><span style="color:#ffcc00">◆</span> ${r}</span><span class="wp-stat-chip total">(${tot})</span>`;
         }
         chipRow($iw, s.inWorldBreak.c, s.inWorldBreak.u, s.inWorldBreak.r);
         chipRow($h, s.held.c, s.held.u, s.held.r);
@@ -408,7 +409,7 @@ export default function GameEngine() {
         for (const { pk, name, me } of all) {
           const b = getBalance(pk); if (!me && b.common + b.uncommon + b.rare === 0) continue;
           const row = document.createElement('div'); row.className = 'wp-lrow' + (me ? ' me' : '');
-          row.innerHTML = `<span class="wp-lname${me ? ' me' : ''}">${me ? '★ ' : ''}${name}</span><span class="wp-lbals"><span class="lbc">🟢${b.common}</span><span class="lbu">🔵${b.uncommon}</span><span class="lbr">🌟${b.rare}</span></span>`;
+          row.innerHTML = `<span class="wp-lname${me ? ' me' : ''}">${me ? '✦ ' : ''}${name}</span><span class="wp-lbals"><span class="lbc"><span style="color:#00ff88">●</span>${b.common}</span><span class="lbu"><span style="color:#66aaff">●</span>${b.uncommon}</span><span class="lbr"><span style="color:#ffcc00">◆</span>${b.rare}</span></span>`;
           lb.appendChild(row);
         }
         if (!lb.children.length) lb.innerHTML = '<div class="wp-lrow" style="color:rgba(255,255,255,.18)">No orbs collected yet — explore!</div>';
@@ -428,7 +429,7 @@ export default function GameEngine() {
 
       function showOrbToast(type: OrbType) {
         const t = document.getElementById('orb-toast'); if (!t) return;
-        t.textContent = `${ORB_EMOJI[type]} +1 ${type} orb`;
+        t.innerHTML = `<span style="color:${ORB_EMOJI_COL[type]}">${ORB_EMOJI[type]}</span> +1 ${type} orb`;
         t.style.borderColor = ORB_CSS_COL[type] + '55'; t.style.background = ORB_CSS_COL[type] + '16';
         t.classList.add('show'); clearTimeout((t as HTMLElement & { _timer?: ReturnType<typeof setTimeout> })._timer);
         (t as HTMLElement & { _timer?: ReturnType<typeof setTimeout> })._timer = setTimeout(() => t.classList.remove('show'), 2400);
@@ -834,11 +835,12 @@ export default function GameEngine() {
       setInterval(() => { localStorage.setItem('sd-x', String(pos.x)); localStorage.setItem('sd-y', String(pos.y)) }, 3000);
 
       // ─── P2P ──────────────────────────────────────────────────────────────────
-      let sendState: (data: unknown, id?: string) => void = () => {};
-      let sendChat: (data: unknown) => void = () => {};
-      let sendHello: (data: unknown, id?: string) => void = () => {};
-      let sendTx: (data: unknown) => void = () => {};
-      let roomRef: { addStream: (stream: MediaStream, id?: string) => void } | null = null;
+      // New trystero API: action.send(data, { target: peerId | null })
+      let sendState: (data: unknown, target?: string | null) => void = () => {};
+      let sendChat: (data: unknown, target?: string | null) => void = () => {};
+      let sendHello: (data: unknown, target?: string | null) => void = () => {};
+      let sendTx: (data: unknown, target?: string | null) => void = () => {};
+      let roomRef: { addStream: (stream: MediaStream) => void } | null = null;
 
       const hpDot = document.getElementById('hp-dot');
       const hpConnLabel = document.getElementById('hp-connlabel');
@@ -859,56 +861,60 @@ export default function GameEngine() {
       }
 
       function initP2P() {
-        try {
-          // Dynamic import of trystero from esm.sh (CSP allows it)
-          import('https://esm.sh/trystero@0.21.4/torrent' as string).then(({ joinRoom }) => {
-            const room = joinRoom({ appId: 'spectral-drift-ghost-world-v3', relayRedundancy: 2, trackerUrls: ['wss://tracker.openwebtorrent.com', 'wss://tracker.webtorrent.dev'] }, ROOM_ID);
-            roomRef = room;
-            const [_sendState, onState] = room.makeAction('s');
-            const [_sendChat, onChat] = room.makeAction('c');
-            const [_sendHello, onHello] = room.makeAction('h');
-            const [_sendTx, onTx] = room.makeAction('tx');
-            const [_sendLedger, onLedger] = room.makeAction('ld');
-            const [, onReqLedger] = room.makeAction('rl');
-            sendState = _sendState; sendChat = _sendChat; sendHello = _sendHello; sendTx = _sendTx;
-            void onReqLedger;
+        import('@trystero-p2p/torrent').then(({ joinRoom }) => {
+          const room = joinRoom({ appId: 'spectral-drift-ghost-world-v3', relayConfig: { urls: ['wss://tracker.openwebtorrent.com', 'wss://tracker.webtorrent.dev'], redundancy: 2 } }, ROOM_ID);
+          roomRef = room;
 
-            room.onPeerJoin((id: string) => {
-              setConn('Connected', 'ok');
-              sendHello({ ...myState(), pk: myPK, sid: myShortId }, id);
-              if (ledger.length) {
-                const CHUNK = 200;
-                for (let i = 0; i < ledger.length; i += CHUNK) _sendLedger({ txs: ledger.slice(i, i + CHUNK), total: ledger.length, chunk: Math.floor(i / CHUNK) }, id);
-              }
-              if (localStream) room.addStream(localStream, id);
-            });
+          const stateAction = room.makeAction('s');
+          const chatAction  = room.makeAction('c');
+          const helloAction = room.makeAction('h');
+          const txAction    = room.makeAction('tx');
+          const ledgerAction = room.makeAction('ld');
 
-            room.onPeerLeave((id: string) => { dropPeer(id); pendingStreams.delete(id); if (remotes.size === 0) setConn('Alone — share link', 'copy') });
+          // Wire up senders — new API: action.send(data, { target })
+          sendState = (data, target?) => void stateAction.send(data as never, target ? { target } : undefined);
+          sendChat  = (data, target?) => void chatAction.send(data as never, target ? { target } : undefined);
+          sendHello = (data, target?) => void helloAction.send(data as never, target ? { target } : undefined);
+          sendTx    = (data, target?) => void txAction.send(data as never, target ? { target } : undefined);
 
-            onHello((d: Record<string, unknown>, id: string) => {
-              applyState(id, d as Parameters<typeof applyState>[1]);
-              if (pendingStreams.has(id)) { const e = remotes.get(id); if (e) { attachStream(e, pendingStreams.get(id)!); pendingStreams.delete(id) } }
-            });
-            onState((d: Record<string, unknown>, id: string) => applyState(id, d as Parameters<typeof applyState>[1]));
-            onChat((d: { m: string }, id: string) => { const e = remotes.get(id); if (e) showMsg(e.ghost, d.m) });
-            onTx(async (tx: Tx) => { await applyTx(tx, false) });
-            onLedger(async (data: { txs?: Tx[] }) => {
-              if (!data || !Array.isArray(data.txs)) return;
-              let added = 0;
-              for (const tx of data.txs) { const ok = await applyTx(tx, false); if (ok) added++ }
-              if (added > 0) { showSyncBadge(); updateWalletHUD(); if (local) { local.nmEl.textContent = myName; setColors(local, myGlow, myEye) } }
-              if (added > 5 && claimLockUntil > Date.now()) claimLockUntil = Date.now() + 1500;
-            });
+          room.onPeerJoin = (id: string) => {
+            setConn('Connected', 'ok');
+            sendHello({ ...myState(), pk: myPK, sid: myShortId }, id);
+            if (ledger.length) {
+              const CHUNK = 200;
+              for (let i = 0; i < ledger.length; i += CHUNK)
+                void ledgerAction.send({ txs: ledger.slice(i, i + CHUNK), total: ledger.length, chunk: Math.floor(i / CHUNK) } as never, { target: id });
+            }
+            if (localStream) room.addStream(localStream);
+          };
 
-            room.onPeerStream((stream: MediaStream, id: string) => { const e = remotes.get(id); if (e) attachStream(e, stream); else pendingStreams.set(id, stream) });
+          room.onPeerLeave = (id: string) => { dropPeer(id); pendingStreams.delete(id); if (remotes.size === 0) setConn('Alone — share link', 'copy') };
 
-            const myHello = () => ({ ...myState(), pk: myPK, sid: myShortId });
-            setTimeout(() => sendHello(myHello()), 200);
-            setTimeout(() => sendHello(myHello()), 2500);
-            setInterval(() => { sendHello(myHello()); lastSeen.set(myPK, Date.now()); saveLedger() }, 20000);
-            setTimeout(() => { if (remotes.size === 0) setConn('Share link to invite', 'copy') }, 8000);
-          }).catch(err => { console.warn('P2P init failed:', err); setConn('Solo mode', 'bad') });
-        } catch (err: unknown) { console.warn('P2P init failed:', (err as Error).message); setConn('Solo mode', 'bad') }
+          helloAction.onMessage = (d: unknown, ctx: { peerId: string }) => {
+            const id = ctx.peerId;
+            applyState(id, d as Parameters<typeof applyState>[1]);
+            if (pendingStreams.has(id)) { const e = remotes.get(id); if (e) { attachStream(e, pendingStreams.get(id)!); pendingStreams.delete(id) } }
+          };
+          stateAction.onMessage = (d: unknown, ctx: { peerId: string }) => applyState(ctx.peerId, d as Parameters<typeof applyState>[1]);
+          chatAction.onMessage  = (d: unknown, ctx: { peerId: string }) => { const e = remotes.get(ctx.peerId); if (e) showMsg(e.ghost, (d as { m: string }).m) };
+          txAction.onMessage    = async (tx: unknown) => { await applyTx(tx as Tx, false) };
+          ledgerAction.onMessage = async (data: unknown) => {
+            const d = data as { txs?: Tx[] };
+            if (!d || !Array.isArray(d.txs)) return;
+            let added = 0;
+            for (const tx of d.txs) { const ok = await applyTx(tx, false); if (ok) added++ }
+            if (added > 0) { showSyncBadge(); updateWalletHUD(); if (local) { local.nmEl.textContent = myName; setColors(local, myGlow, myEye) } }
+            if (added > 5 && claimLockUntil > Date.now()) claimLockUntil = Date.now() + 1500;
+          };
+
+          room.onPeerStream = (stream: MediaStream, id: string) => { const e = remotes.get(id); if (e) attachStream(e, stream); else pendingStreams.set(id, stream) };
+
+          const myHello = () => ({ ...myState(), pk: myPK, sid: myShortId });
+          setTimeout(() => sendHello(myHello()), 200);
+          setTimeout(() => sendHello(myHello()), 2500);
+          setInterval(() => { sendHello(myHello()); lastSeen.set(myPK, Date.now()); saveLedger() }, 20000);
+          setTimeout(() => { if (remotes.size === 0) setConn('Share link to invite', 'copy') }, 8000);
+        }).catch(err => { console.warn('P2P init failed:', err); setConn('Solo mode', 'bad') });
       }
 
       // ─── INPUT ────────────────────────────────────────────────────────────────

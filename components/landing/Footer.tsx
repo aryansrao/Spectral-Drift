@@ -69,7 +69,7 @@ export default function Footer() {
           >
             Built by{" "}
             <a
-              href="https://aryansrao.leapcell.app"
+              href="https://aryansrao.vercel.app"
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -110,7 +110,7 @@ export default function Footer() {
             },
             {
               label: "Portfolio",
-              href: "https://aryansrao.leapcell.app",
+              href: "https://aryansrao.vercel.app",
               external: true,
             },
             {

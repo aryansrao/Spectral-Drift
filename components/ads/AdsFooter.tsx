@@ -27,7 +27,7 @@ export default function AdsFooter() {
         >
           Spectral Drift · Built by{' '}
           <a
-            href="https://aryansrao.leapcell.app"
+            href="https://aryansrao.vercel.app"
             target="_blank"
             rel="noopener noreferrer"
             style={{ color: 'var(--color-muted)' }}
@@ -55,7 +55,7 @@ export default function AdsFooter() {
             },
             {
               label: 'Portfolio',
-              href: 'https://aryansrao.leapcell.app',
+              href: 'https://aryansrao.vercel.app',
               external: true,
             },
             { label: 'Email', href: 'mailto:aaryansrao5@gmail.com' },

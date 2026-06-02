@@ -13,11 +13,11 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://esm.sh",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob:",
-      "connect-src 'self' wss://tracker.openwebtorrent.com wss://tracker.webtorrent.dev wss://*.trystero.io https://esm.sh blob:",
+      "connect-src 'self' wss://tracker.openwebtorrent.com wss://tracker.webtorrent.dev blob:",
       "worker-src 'self' blob:",
       "media-src 'self' blob:",
     ].join("; "),

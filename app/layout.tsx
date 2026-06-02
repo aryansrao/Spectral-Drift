@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     "A peer-to-peer open world where ghost spirits roam, collect cryptographic orbs and connect with others in real time. No servers. No accounts. Just your 12-word seed phrase and the void.",
   keywords:
     "spectral drift, multiplayer, p2p game, ghost world, crypto orbs, browser game, webrtc, open world, no server",
-  authors: [{ name: "Aryan S Rao", url: "https://aryansrao.leapcell.app" }],
+  authors: [{ name: "Aryan S Rao", url: "https://aryansrao.vercel.app" }],
   robots: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
   openGraph: {
     type: "website",
