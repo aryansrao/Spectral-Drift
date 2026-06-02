@@ -128,7 +128,7 @@ export default function GameEngine() {
 
       // ─── AD SYSTEM ────────────────────────────────────────────────────────────
       const AD_CONFIG = [
-        { title: 'Get your ads here', desc: 'spectral-drift.netlify.app/ads', url: '/ads', color: '#ff9900' },
+        { title: 'Get your ads here', desc: 'spectraldrift.vercel.app/ads', url: '/ads', color: '#ff9900' },
       ];
       const AD_TRIGGER_DIST = 4.5, AD_NEARBY_DIST = 9, AD_VIS_DIST = 50, AD_COOLDOWN_MS = 45000, AD_ORB_OFFSET = 4;
 
