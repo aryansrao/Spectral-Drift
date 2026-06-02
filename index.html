@@ -56,9 +56,8 @@
   }
   </script>
 
-  <!-- ── Favicon ── -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='%23000'/><path fill='%23ff4500' d='m256 60c-88 0-160 66-169 152-32 230-77 268-77 268-14 24 20 27 38 27 34 0 34 39 68 39s34-34 68-34 36 44 70 44 36-44 70-44 34 34 68 34 34-39 68-39c18 0 53-3 38-27 0 0-45-38-77-268-9-86-81-152-165-152z'/></svg>">
-  <link rel="icon" type="image/png" sizes="32x32" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23000'/><path fill='%23ff4500' d='m16 2c-5.5 0-10 4.1-10.6 9.5-2 14.4-4.8 16.8-4.8 16.8-.9 1.5 1.3 1.7 2.4 1.7 2.1 0 2.1 2.4 4.3 2.4s2.2-2.1 4.3-2.1 2.3 2.8 4.4 2.8 2.3-2.8 4.4-2.8 2.1 2.1 4.3 2.1 2.1-2.4 4.3-2.4c1.1 0 3.3-.2 2.4-1.7 0 0-2.8-2.4-4.8-16.8-.6-5.4-5.1-9.5-10.6-9.5z'/></svg>">
+  <!-- ── Favicon — matches /realm ── -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><path fill='%23ff4500' d='m256 30c-90 0-164 68-173 156-33 237-79 276-79 276-15 25 21 28 39 28 35 0 35 40 70 40s35-35 71-35 37 45 72 45 37-45 72-45 35 35 71 35 35-40 70-40c18 0 54-3 39-28 0 0-46-39-79-276-9-88-83-156-173-156z'/></svg>">
 
   <!-- ── Geist Font (Vercel) ── -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -208,7 +207,104 @@
       transition: opacity .15s, transform .1s !important;
     }
     .nav-cta:hover { opacity: .88 !important; transform: translateY(-1px) !important; background: var(--accent) !important; }
-    @media(max-width:600px){ .nav-links li:not(:last-child){ display:none } }
+
+    /* ════════════════════════════════════════════
+       RESPONSIVE — COMPREHENSIVE
+    ════════════════════════════════════════════ */
+
+    /* ── Tablet (≤900px) ── */
+    @media(max-width:900px){
+      .feat-grid { grid-template-columns: repeat(2, 1fr); }
+      .how-inner { grid-template-columns: 1fr; gap: 48px; }
+      .security-inner { grid-template-columns: 1fr; gap: 48px; }
+      .ads-inner { grid-template-columns: 1fr; gap: 48px; }
+      .how-visual { max-width: 480px; }
+      .sec-code-block { order: -1; } /* code above text on tablet */
+    }
+
+    /* ── Mobile (≤768px) ── */
+    @media(max-width:768px){
+      .wrap, .wrap-sm { padding: 0 16px; }
+
+      /* Nav */
+      .nav-links li:not(:last-child):not(:nth-last-child(2)){ display:none }
+
+      /* Hero */
+      .hero { padding: 100px 16px 60px; }
+      .hero-badge { font-size: 10px; padding: 5px 12px; }
+      .hero-title { letter-spacing: -.03em; line-height: 1.02; }
+      .hero-sub { font-size: 15px; margin-bottom: 36px; }
+      .hero-actions { gap: 10px; }
+      .btn-primary, .btn-secondary { padding: 12px 20px; font-size: 13px; }
+      .hero-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+        margin-top: 40px;
+        padding-top: 0;
+        border-top: none;
+      }
+      .hero-stats > [role="listitem"] {
+        padding: 20px 0;
+        border-top: 1px solid var(--border);
+      }
+      .hero-stats > [role="listitem"]:nth-child(odd) { border-right: 1px solid var(--border); padding-right: 20px; }
+      .hero-stats > [role="listitem"]:nth-child(even) { padding-left: 20px; }
+      .hero-stat-div { display: none; }
+      .hero-stat-num { font-size: 22px; }
+
+      /* Sections */
+      .features, .how, .security, .economy, .advertising, .tech, .cta-band { padding: 64px 0; }
+
+      /* Features */
+      .feat-grid { grid-template-columns: 1fr 1fr; border-radius: var(--r-lg); }
+      .feat-card { padding: 24px 18px; }
+      .feat-icon { width: 34px; height: 34px; font-size: 16px; margin-bottom: 14px; }
+      .feat-name { font-size: 13px; }
+      .feat-desc { font-size: 12px; }
+      .features-header { margin-bottom: 36px; }
+
+      /* How */
+      .how-visual { padding: 20px; }
+      .phrase-word { padding: 6px 6px; }
+      .phrase-word-val { font-size: 10px; }
+
+      /* Security */
+      .sec-code-body { font-size: 10.5px; padding: 18px 16px; }
+      .sec-list { margin-top: 24px; }
+
+      /* Economy */
+      .econ-grid { grid-template-columns: 1fr; gap: 12px; }
+      .orb-card { padding: 22px 18px; }
+
+      /* Tech */
+      .tech-grid { gap: 8px; }
+      .tech-pill { font-size: 11px; padding: 6px 12px; }
+
+      /* CTA */
+      .cta-band .section-title { font-size: clamp(28px, 7vw, 40px); }
+
+      /* Footer */
+      .footer-inner { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .footer-links { flex-wrap: wrap; gap: 12px 20px; }
+
+      /* Global */
+      .section-title { letter-spacing: -.035em; }
+      .section-desc { font-size: 14px; }
+    }
+
+    /* ── Small mobile (≤500px) ── */
+    @media(max-width:500px){
+      .hero-title { letter-spacing: -.025em; }
+      .feat-grid { grid-template-columns: 1fr; }
+      .phrase-demo { grid-template-columns: repeat(3, 1fr); gap: 5px; }
+      .how-step { gap: 14px; }
+      .hero-actions { flex-direction: column; align-items: stretch; }
+      .btn-primary, .btn-secondary { justify-content: center; text-align: center; }
+      .nav-links li:not(:last-child){ display:none }
+      .orb-card::before { display: none; } /* skip glow blob on small screens */
+      .tech-grid { gap: 6px; }
+    }
 
     /* ════════════════════════════════════════════
        HERO
@@ -401,7 +497,7 @@
       border-radius: var(--r-xl);
       overflow: hidden;
     }
-    @media(max-width:768px){ .feat-grid{ grid-template-columns:1fr } }
+
 
     .feat-card {
       background: var(--bg);
@@ -453,7 +549,7 @@
       gap: 80px;
       align-items: center;
     }
-    @media(max-width:768px){ .how-inner{ grid-template-columns:1fr; gap:48px } }
+
 
     .how-steps { display: flex; flex-direction: column; gap: 0; }
     .how-step {
@@ -552,7 +648,7 @@
       gap: 80px;
       align-items: start;
     }
-    @media(max-width:768px){ .security-inner{ grid-template-columns:1fr; gap:48px } }
+
 
     .sec-list { display: flex; flex-direction: column; gap: 0; margin-top: 40px; }
     .sec-item {
@@ -631,7 +727,7 @@
       gap: 16px;
       margin-top: 56px;
     }
-    @media(max-width:640px){ .econ-grid{ grid-template-columns:1fr } }
+
 
     .orb-card {
       background: var(--surface);
@@ -698,7 +794,7 @@
       gap: 80px;
       align-items: center;
     }
-    @media(max-width:768px){ .ads-inner{ grid-template-columns:1fr; gap:48px } }
+
 
     .ads-features { display: flex; flex-direction: column; gap: 20px; margin-top: 36px; }
     .ads-feat {
@@ -957,6 +1053,7 @@
       <li><a href="#economy">Orbs</a></li>
       <li><a href="/ads">Advertise</a></li>
       <li><a href="https://aryansrao.leapcell.app" target="_blank" rel="noopener">Creator</a></li>
+      <li><a href="https://github.com/aryansrao/spectral-drift" target="_blank" rel="noopener">GitHub</a></li>
       <li><a href="/realm" class="nav-cta">Enter Realm →</a></li>
     </ul>
   </div>
@@ -1358,6 +1455,7 @@
     <ul class="footer-links" role="list">
       <li><a href="/realm">Play</a></li>
       <li><a href="/ads">Advertise</a></li>
+      <li><a href="https://github.com/aryansrao/spectral-drift" target="_blank" rel="noopener">GitHub</a></li>
       <li><a href="https://aryansrao.leapcell.app" target="_blank" rel="noopener">Portfolio</a></li>
       <li><a href="mailto:aaryansrao5@gmail.com">Contact</a></li>
     </ul>
